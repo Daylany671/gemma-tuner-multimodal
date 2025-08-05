@@ -99,3 +99,15 @@ When designing your distillation process, you are balancing three factors:
 3.  **Model Size**: Driven by the combined size of the student's encoder and decoder.
 
 By using a large encoder and a small, custom-built decoder, you can often achieve significant improvements in speed and size with a surprisingly small drop in accuracy.
+
+## Modifications to Upstream
+
+This implementation includes several modifications to the original distil-whisper repository from HuggingFace:
+
+1. **Updated Dependencies**: Modernized to work with PyTorch 2.7+ and Transformers 4.53+ (original targets PyTorch 2.1 and Transformers 4.34)
+2. **Apple Silicon Support**: Added comprehensive MPS (Metal Performance Shaders) support and optimization
+3. **Memory Optimizations**: Implemented memory-efficient training strategies for unified memory architecture
+4. **Custom Architecture Support**: Extended to allow arbitrary decoder layer configurations via command-line arguments
+5. **Cloud Storage Integration**: Added Google Cloud Storage streaming support for massive datasets
+
+These changes ensure compatibility with modern hardware and frameworks while maintaining the core distillation functionality.
