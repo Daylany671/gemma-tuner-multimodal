@@ -225,6 +225,35 @@ python scripts/evaluate.py --model_name_or_path output/run-001-small-lora-data3 
 - Apple Silicon optimization
 - Advanced troubleshooting
 
+## Streaming Mode for Large Datasets
+
+For datasets too large to fit in memory, enable streaming mode:
+
+```bash
+# In config.ini profile:
+[profile:large-dataset-streaming]
+streaming_enabled = true
+
+# Or via command line:
+python main.py finetune large-dataset-streaming
+```
+
+**Streaming Mode Features:**
+- Process datasets of any size without loading into memory
+- Patches (overrides, blacklists) still work via O(1) lookups
+- Perfect for 100+ hour datasets or memory-constrained systems
+- Training progress shows steps instead of percentage
+
+**When to Use:**
+- Dataset > 50GB or > 100 hours of audio
+- Limited RAM (< dataset size)
+- Production training on massive datasets
+
+**Limitations:**
+- No dataset shuffling (processes in order)
+- No exact epoch boundaries
+- Progress bars show steps, not percentages
+
 ## Apple Silicon Optimization
 
 ### Environment Variables
