@@ -506,6 +506,15 @@ A macOS CI workflow performs smoke import tests, prepares a tiny streaming datas
 
 - Optional mini-train smoke: set repository variable `RUN_MINI_TRAIN=1` to enable a tiny guarded train step using `openai/whisper-tiny` (kept off by default to preserve CI time).
 
+## Optional Typer CLI
+
+For a friendlier CLI experience (shell completion, nicer help), you can use the optional Typer interface without changing existing workflows:
+
+```bash
+python cli_typer.py finetune medium-data3 --json-logging
+python cli_typer.py evaluate whisper-tiny+test_streaming --config config.ini
+```
+
 ## Visualizer Controls
 
 - Start the visualizer by setting `visualize=True` in your profile. It auto-binds to `127.0.0.1` and picks a free port starting at 8080.
