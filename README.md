@@ -299,12 +299,9 @@ pip install torch torchvision torchaudio --index-url https://download.pytorch.or
 
 ### 3. Install dependencies
 ```bash
-# Core dependencies
-pip install transformers datasets evaluate librosa soundfile accelerate
-pip install packaging filelock tabulate
-
-# For LoRA training (parameter-efficient fine-tuning)
-pip install peft
+pip install -r requirements.txt
+# Optional: dev/test tools
+pip install -r requirements-dev.txt
 ```
 
 Note: For deterministic installs, you can use a lockfile with uv or pip-tools:
@@ -321,6 +318,13 @@ pip install -r requirements.lock
 ### 4. Verify MPS setup
 ```bash
 python scripts/system_check.py
+
+# Or quick check
+python - << 'PY'
+import torch
+print('MPS available:', torch.backends.mps.is_available())
+print('CUDA available:', torch.cuda.is_available())
+PY
 ```
 
 ## Cloud Storage Streaming (New!)
@@ -351,8 +355,8 @@ The preparer auto-detects `gs://` URIs and switches to streaming mode. It also v
 # Prepare dataset without downloading
 python scripts/prepare_data.py your_dataset --no-download
 
-# Train as normal - audio streams automatically
-python main.py finetune medium-lora-data3
+# Train as normal - audio streams automatically (Typer CLI)
+python cli_typer.py finetune medium-lora-data3
 ```
 
 The system automatically detects GCS paths and streams audio on-demand during training.
@@ -485,7 +489,7 @@ export PYTORCH_MPS_HIGH_WATERMARK_RATIO=0.8
 export SDPA_ALLOW_FLASH_ATTN=1
 ```
 
-Additionally, to reduce memory spikes, preprocessing and dataloader workers are capped by default on MPS. Override via `preprocessing_num_workers` and `dataloader_num_workers` in `config.ini` if needed.
+Additionally, to reduce memory spikes, preprocessing and dataloader workers are capped by default on MPS. Override via `preprocessing_num_workers` and `dataloader_num_workers` in `config.ini` if needed. Evaluation now includes a one-shot OOM fallback that halves the eval batch size and retries once before failing.
 
 ### Recommended Batch Sizes (Updated for PyTorch 2.3 with Flash Attention 2)
 
@@ -566,6 +570,8 @@ whisper-fine-tuner-macos/
 │   ├── inference.py    # Unified inference utilities (evaluate/blacklist)
 │   └── ...
 └── main.py             # Legacy entry point (still supported)
+
+Run artifacts include enriched metadata for reproducibility: device, OS and library versions are stamped into `metadata.json` for each run.
 ```
 
 ## Common Issues
