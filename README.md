@@ -535,7 +535,7 @@ whisper-fine-tuner-macos/
 │   ├── system_check.py  # Verify GPU/MPS setup
 │   ├── evaluate.py      # Model evaluation
 │   ├── blacklist.py     # Outlier detection
-│   └── export.py        # GGML conversion
+│   └── export.py        # Model dir export (HF/SafeTensors)
 ├── utils/
 │   └── device.py        # Device selection (MPS/CUDA/CPU)
 ├── config.ini           # Training configurations

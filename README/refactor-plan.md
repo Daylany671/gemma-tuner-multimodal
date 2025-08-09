@@ -82,6 +82,10 @@
 
 #### To Do (follow-ups)
 - Visualizer: expose feature toggles in UI (not only via URL params) and minor UI polish.
+- CI: ensure macOS GitHub Actions workflow is present and green; include lint + smoke (prepare tiny streaming dataset, short eval). Keep optional guarded mini-train.
+- Typer CLI: document optional Typer interface (`cli_typer.py`) in README and add a small smoke test.
+- Tests: add focused unit tests for `core/config` validation paths, `core/ops` dispatch error paths, and `core/runs` metadata/metrics merges.
+- Docs: fix duplicate "Completed" header in this file; note Typer CLI and LLM-first headers added to smaller helper modules (`core/__init__.py`, `utils/__init__.py`, `models/common/__init__.py`, root `__init__.py`).
 
 ### Risk management
 - Changes are staged to keep functional behavior stable at each step.
