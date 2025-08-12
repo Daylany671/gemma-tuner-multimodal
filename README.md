@@ -150,30 +150,83 @@ if args.visualize:
     trainer.add_callback(visualizer.get_callback())
 ```
 
-#### 6. Interactive Configuration Wizard
+#### 6. Wizard CLI (Interactive Guided Training)
 
-**Progressive Disclosure Interface** (`wizard.py`):
-- **Guided Configuration**: Step-by-step training setup for beginners
-- **Smart Defaults**: Intelligent parameter selection based on hardware
-- **Method Recommendations**: Suggests training approach based on resources
-- **Profile Generation**: Creates config.ini profiles on-the-fly
+The Wizard is a beautiful, step-by-step CLI that guides you through setting up a fine-tuning run with smart defaults and progressive disclosure.
 
-**Hardware-Aware Recommendations**:
-```python
-# Automatic batch size calculation
-available_memory = get_available_memory()
-model_memory = ModelSpecs.SIZES[model_size]["memory"]
-recommended_batch = calculate_optimal_batch_size(
-    available_memory, model_memory, training_method
-)
+- **File**: `wizard.py`
+- **Entrypoints**:
+  - `python manage.py finetune-wizard` (recommended)
+  - `python wizard.py` (direct)
+
+##### What the Wizard Does
+- Detects your compute device (Apple Silicon MPS, CUDA, or CPU) and available memory
+- Helps you choose a training method: Standard, LoRA, or Distillation
+- Filters model choices by your available memory and method
+- Auto-detects local datasets in `data/*` and offers common 🤗 datasets
+- Collects method-specific parameters (e.g., LoRA rank/alpha, distillation temperature/teacher)
+- Estimates training time and memory usage for your choices
+- Optionally enables the live Training Visualizer
+- Launches training by generating a temporary profile and calling the normal training pipeline
+
+##### How to Launch
+```bash
+# Recommended
+python manage.py finetune-wizard
+
+# Or run directly
+python wizard.py
 ```
 
-**Integration Flow**:
-1. Hardware detection and capability assessment
-2. Dataset selection and validation
-3. Training method recommendation
-4. Parameter optimization for hardware
-5. Profile generation and training execution
+##### The Flow (Step-by-Step)
+1. Welcome + Device Check
+   - Shows detected device (e.g., Apple Silicon MPS), available memory, and readiness
+
+2. Training Method
+   - Options:
+     - 🚀 Standard Fine-Tune (SFT): full-parameter training (highest accuracy, most memory)
+     - 🎨 LoRA Fine-Tune: parameter-efficient, fast, low memory (recommended)
+     - 🧠 Knowledge Distillation: teacher → student (most complex, highest memory)
+
+3. Model Selection (hardware-aware)
+   - Filters models using your available memory and the chosen method
+   - Shows params, rough time and memory estimates, and recommended picks
+
+4. Dataset Selection
+   - Auto-detects local datasets under `data/<dataset>/` with `*.csv` or audio files
+   - Offers a few common 🤗 datasets (e.g., Common Voice, LibriSpeech)
+   - “Custom path” lets you type a path (see limitations below)
+
+5. Method-Specific Configuration
+   - LoRA: choose `lora_r` (rank), `lora_alpha`, dropout (smart defaults)
+   - Distillation: choose teacher model and temperature
+
+6. Summary + Estimates + Visualizer
+   - Pretty summary table of your configuration
+   - Time and memory estimates based on device and model specs
+   - Toggle live Training Visualizer (opens a local web UI during training)
+
+7. Start Training
+   - Wizard generates a temporary INI file with a profile named like `wizard_YYYYMMDD_HHMMSS`
+   - Calls the standard training pipeline: `python main.py finetune <profile> --config <temp.ini>`
+   - Cleans up the temporary file after starting
+
+##### Under the Hood
+- Device detection: `utils/device.get_device()`
+- UI: `rich` + `questionary`
+- Training handoff: `main.py finetune` via a temporary config file in `temp_configs/`
+- Visualizer (optional): enables `visualize=True` which the training pipeline detects
+
+##### Persisting Your Choices
+The temporary profile is generated on-the-fly and deleted after launch. To make a persistent profile:
+- Add a new `[profile:<name>]` to `config.ini` that mirrors your wizard choices; then run it via the normal CLI.
+
+##### Important Limitations (current)
+- The training system loads many required defaults from `config.ini` (e.g., `[model:*]`, `[dataset:*]`, and `[group:*]` sections). Ensure your chosen `model` and `dataset` exist there so the pipeline can resolve required keys like `base_model`, `train_split`, `text_column`, etc.
+- “Custom path” is primarily for selection convenience. For full compatibility, define a matching `[dataset:<name>]` in `config.ini` (with `source = <dataset_name>` and split settings) and select that dataset in the wizard.
+- The wizard doesn’t overwrite your `config.ini`; it generates a temporary profile with your selections and relies on `config.ini` to provide the remaining defaults.
+
+If you see a config validation error mentioning missing keys (e.g., `base_model` or `train_split`), add the required `[model:*]`/`[dataset:*]` sections in `config.ini` and re-run the wizard.
 
 ### Data Flow Architecture
 
