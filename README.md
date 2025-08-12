@@ -12,8 +12,203 @@ A comprehensive framework for fine-tuning OpenAI's Whisper models with native Ap
 - 📊 **Comprehensive Evaluation**: WER/CER metrics with detailed analysis
 - 🔍 **Outlier Detection**: Automatic blacklisting of problematic samples
 - 🏷️ **Pseudo-Labeling**: Generate labels for unlabeled data
-- 📦 **Export to GGML**: Convert models for whisper.cpp
+- 📦 **Export**: Export trained checkpoints to portable HF/SafeTensors directories
 - ☁️ **Cloud Storage Streaming**: Train on massive datasets without local storage
+
+## Architecture Overview
+
+The Whisper Fine-Tuner framework is built on a modular, platform-agnostic architecture that seamlessly adapts to Apple Silicon, NVIDIA CUDA, and CPU environments while providing sophisticated data quality management and multiple training paradigms.
+
+### Design Principles
+
+- **Platform Abstraction**: Unified device management layer abstracts hardware differences between MPS, CUDA, and CPU
+- **Modular Training Methods**: Clean separation between standard, LoRA, and distillation training approaches
+- **Data Quality First**: Hierarchical patch system for data corrections, blacklisting, and protection
+- **Progressive Disclosure**: Interactive wizard for beginners, full configuration control for experts
+- **Memory Efficiency**: Architecture optimized for Apple Silicon's unified memory and consumer hardware constraints
+
+### Core Components
+
+#### 1. Training Orchestration System
+
+**Canonical CLI** (`cli_typer.py`):
+- Prefer Typer-based commands for all workflows; it delegates to the same core modules.
+- `main.py` remains as a legacy entry point for backward compatibility.
+- **Profile-Based Configuration**: Hierarchical configuration system with inheritance (DEFAULT → group → model → dataset → profile)
+- **Run Management**: Sequential run ID generation with metadata tracking and failure recovery
+- **Operation Routing**: Unified CLI for data preparation, training, evaluation, and export operations
+- **Platform Optimization**: Early MPS memory configuration and device-specific backend setup
+
+**Configuration System** (`config.ini`):
+- **Hierarchical Profiles**: Compose training configurations from reusable components
+- **Method Detection**: Automatic training method selection based on profile keys (lora_*, distil_*)
+- **Override Support**: Command-line arguments override configuration values
+- **Dataset Inheritance**: Share common preprocessing settings across datasets
+
+**Run Management**:
+```
+output/
+├── {id}-{profile}/
+│   ├── metadata.json       # Run configuration and status
+│   ├── metrics.json        # Consolidated metrics (train/eval)
+│   ├── checkpoint-*/       # Training checkpoints
+│   └── adapter_model/      # LoRA adapters (if applicable)
+```
+
+#### 2. Device Management Layer
+
+**Unified Device Abstraction** (`utils/device.py`):
+- **Platform Detection**: Automatic selection following MPS → CUDA → CPU hierarchy
+- **Memory Management**: Platform-specific strategies for unified (MPS) vs discrete (CUDA) memory
+- **Synchronization**: Device-appropriate synchronization for accurate measurements
+- **Diagnostics**: Comprehensive device capability reporting and MPS verification
+
+**Apple Silicon Optimizations**:
+- **Unified Memory Architecture**: Shared CPU/GPU memory pool eliminates transfer overhead
+- **Memory Pressure Control**: `PYTORCH_MPS_HIGH_WATERMARK_RATIO` prevents system-wide swapping
+- **MPS Fallback Handling**: `PYTORCH_ENABLE_MPS_FALLBACK` for unsupported operations during development
+- **Float32 Precision**: Consistent dtype usage avoiding MPS float64 limitations
+
+**Platform-Specific Features**:
+```python
+# MPS: Unified memory, automatic operation fusion
+torch.mps.synchronize()
+torch.mps.current_allocated_memory()
+
+# CUDA: Discrete memory, explicit management
+torch.cuda.synchronize()
+torch.cuda.memory_allocated()
+```
+
+#### 3. Model Training Modules
+
+**Standard Fine-Tuning** (`models/whisper/finetune.py`):
+- **Full Parameter Updates**: Trains all model parameters for maximum accuracy
+- **HuggingFace Integration**: Leverages Seq2SeqTrainer for stable training
+- **Memory Requirements**: 16-24GB for small models, scales with model size
+- **Use Case**: Maximum performance when resources are available
+
+**LoRA Training** (`models/whisper_lora/finetune.py`):
+- **Parameter-Efficient**: Trains only 0.2-3% of parameters via low-rank adapters
+- **Memory Efficient**: 4-8GB VRAM vs 16-24GB for standard training
+- **Adapter Architecture**: Targets attention (q_proj, k_proj, v_proj) and feedforward (fc1, fc2) layers
+- **Checkpoint Size**: 10-50MB adapters vs 1GB+ full models
+- **8-bit Quantization**: Optional INT8 quantization for further memory reduction
+
+**Knowledge Distillation** (`models/distil_whisper/finetune.py`):
+- **Teacher-Student Architecture**: Large teacher model guides smaller student training
+- **Dual Loss Function**: α × KL_divergence + (1-α) × cross_entropy
+- **Temperature Scaling**: Smooths probability distributions for better knowledge transfer
+- **Custom Training Loop**: Precise control over teacher-student interaction
+- **Memory Intensive**: Requires loading both models simultaneously
+
+#### 4. Dataset Management System
+
+**Hierarchical Patch System** (`utils/dataset_utils.py`):
+- **Override System**: Manual transcription corrections via CSV patches
+- **Blacklist Management**: Automatic filtering of problematic samples
+- **Protection Lists**: Preserve high-quality ground truth from blacklisting
+- **Patch Precedence**: Override → Protection → Blacklist application order
+
+**Patch Directory Structure** (by dataset source from `config.ini`):
+```
+data_patches/{source}/
+├── override_text_perfect/     # Transcription corrections
+│   └── corrections.csv        # id,text_perfect columns
+├── do_not_blacklist/          # Protected samples
+│   └── ground_truth.csv       # id column
+└── delete/                    # Blacklisted samples
+    └── problematic.csv        # id column
+```
+
+**Streaming Support**:
+- **Cloud Storage Integration**: Direct streaming from Google Cloud Storage
+- **Memory-Efficient Loading**: Process datasets larger than available RAM
+- **Patch Compatibility**: O(1) lookups maintain patch application with streaming
+
+#### 5. Training Visualizer
+
+**Real-Time Visualization** (`visualizer.py`):
+- **Flask + SocketIO Backend**: Streams training metrics to web interface
+- **PyTorch Hook Integration**: Extracts gradients, attention weights, and activations
+- **WebGL Frontend**: GPU-accelerated 3D visualizations with Three.js
+- **Performance Buffering**: Prevents visualization from impacting training speed
+
+**Visualization Features**:
+- **3D Neural Network**: Interactive layer visualization with gradient flow
+- **Loss Landscape**: Real-time loss surface evolution
+- **Attention Heatmaps**: Visualize model focus during training
+- **Memory Waves**: System resource utilization patterns
+- **Token Particles**: Generated token visualization
+
+**Architecture Integration**:
+```python
+# Training script integration
+if args.visualize:
+    visualizer = TrainingVisualizer(model, device)
+    visualizer.start_server()
+    trainer.add_callback(visualizer.get_callback())
+```
+
+#### 6. Interactive Configuration Wizard
+
+**Progressive Disclosure Interface** (`wizard.py`):
+- **Guided Configuration**: Step-by-step training setup for beginners
+- **Smart Defaults**: Intelligent parameter selection based on hardware
+- **Method Recommendations**: Suggests training approach based on resources
+- **Profile Generation**: Creates config.ini profiles on-the-fly
+
+**Hardware-Aware Recommendations**:
+```python
+# Automatic batch size calculation
+available_memory = get_available_memory()
+model_memory = ModelSpecs.SIZES[model_size]["memory"]
+recommended_batch = calculate_optimal_batch_size(
+    available_memory, model_memory, training_method
+)
+```
+
+**Integration Flow**:
+1. Hardware detection and capability assessment
+2. Dataset selection and validation
+3. Training method recommendation
+4. Parameter optimization for hardware
+5. Profile generation and training execution
+
+### Data Flow Architecture
+
+```
+Dataset CSV → Prepare Script → Patches Applied → DataLoader
+                                     ↓
+                              Training Module
+                          (Standard/LoRA/Distill)
+                                     ↓
+                              Device Manager
+                              (MPS/CUDA/CPU)
+                                     ↓
+                          Model → Checkpoints → Export
+                            ↓
+                      Visualizer (optional)
+```
+
+### Memory Management Strategy
+
+**Apple Silicon (MPS)**:
+- Unified memory architecture requires system-wide pressure management
+- Default 80% memory allocation prevents swapping
+- Gradient checkpointing for large models
+- Attention slicing for memory-constrained scenarios
+
+**NVIDIA (CUDA)**:
+- Discrete GPU memory with explicit allocation control
+- 90% default allocation for maximum utilization
+- Automatic mixed precision for memory efficiency
+- Multi-GPU support via DataParallel
+
+**Batch Size Optimization**:
+- Platform-specific recommendations based on memory bandwidth
+- Gradient accumulation to simulate larger batches
+- Dynamic batch sizing based on sequence length
 
 ## Model Architectures
 
@@ -104,22 +299,39 @@ pip install torch torchvision torchaudio --index-url https://download.pytorch.or
 
 ### 3. Install dependencies
 ```bash
-# Core dependencies
-pip install transformers datasets evaluate librosa soundfile accelerate
-pip install packaging filelock tabulate
+pip install -r requirements.txt
+# Optional: dev/test tools
+pip install -r requirements-dev.txt
+```
 
-# For LoRA training (parameter-efficient fine-tuning)
-pip install peft
+Note: For deterministic installs, you can use a lockfile with uv or pip-tools:
+```bash
+# Using uv
+uv pip compile requirements.txt -o requirements.lock
+uv pip install -r requirements.lock
+
+# Or using pip-tools
+pip-compile --generate-hashes -o requirements.lock requirements.txt
+pip install -r requirements.lock
 ```
 
 ### 4. Verify MPS setup
 ```bash
 python scripts/system_check.py
+
+# Or quick check
+python - << 'PY'
+import torch
+print('MPS available:', torch.backends.mps.is_available())
+print('CUDA available:', torch.cuda.is_available())
+PY
 ```
 
 ## Cloud Storage Streaming (New!)
 
 Train on massive datasets without downloading them locally. The framework now supports streaming audio files directly from Google Cloud Storage during training.
+
+The preparer auto-detects `gs://` URIs and switches to streaming mode. It also validates the prepared CSV schema (requires `id` and your configured text column) before training/evaluation.
 
 ### Benefits
 - **No disk space required**: Audio files stream directly from GCS
@@ -143,13 +355,13 @@ Train on massive datasets without downloading them locally. The framework now su
 # Prepare dataset without downloading
 python scripts/prepare_data.py your_dataset --no-download
 
-# Train as normal - audio streams automatically
-python main.py finetune medium-lora-data3
+# Train as normal - audio streams automatically (Typer CLI)
+python cli_typer.py finetune medium-lora-data3
 ```
 
 The system automatically detects GCS paths and streams audio on-demand during training.
 
-## Quick Start
+## Quick Start (Recommended: Typer CLI)
 
 ### 1. Prepare your dataset
 Create a CSV file with columns:
@@ -167,7 +379,7 @@ python scripts/prepare_data.py your_dataset
 python scripts/prepare_data.py your_dataset --no-download
 ```
 
-With `--no-download`, audio files are streamed from Google Cloud Storage during training, eliminating disk space requirements for massive datasets.
+With `--no-download`, audio files are streamed from Google Cloud Storage during training. The loader validates that your CSV contains at least `id` and your configured text column.
 
 ### 2. Configure training
 Edit `config.ini` to set:
@@ -180,13 +392,22 @@ Edit `config.ini` to set:
 # For Apple Silicon - enable fallback for initial testing
 export PYTORCH_ENABLE_MPS_FALLBACK=1
 
-# Run training
+# Train (Typer CLI)
+python cli_typer.py finetune medium-data3 --json-logging
+
+# Legacy (still supported)
 python main.py finetune medium-data3
 ```
 
 ### 4. Evaluate model
 ```bash
-python scripts/evaluate.py --model_name_or_path output/run-001-medium-data3 --dataset data3
+# Evaluate (Typer CLI)
+python cli_typer.py evaluate medium-data3
+python cli_typer.py evaluate whisper-tiny+test_streaming
+
+# Legacy (still supported)
+python main.py evaluate medium-data3
+python scripts/evaluate.py --model_name_or_path output/{id}-medium-data3 --dataset data3
 ```
 
 ## LoRA Quick Start
@@ -196,10 +417,10 @@ python scripts/evaluate.py --model_name_or_path output/run-001-medium-data3 --da
 ### 1. Choose a LoRA profile and run training
 ```bash
 # Start with small model (recommended for testing)
-python main.py finetune small-lora-data3
+python cli_typer.py finetune small-lora-data3
 
 # Scale up to medium for better performance
-python main.py finetune medium-lora-data3
+python cli_typer.py finetune medium-lora-data3
 
 # For Apple Silicon - enable fallback initially
 export PYTORCH_ENABLE_MPS_FALLBACK=1
@@ -234,8 +455,8 @@ For datasets too large to fit in memory, enable streaming mode:
 [profile:large-dataset-streaming]
 streaming_enabled = true
 
-# Or via command line:
-python main.py finetune large-dataset-streaming
+# Or via command line (Typer):
+python cli_typer.py finetune large-dataset-streaming
 ```
 
 **Streaming Mode Features:**
@@ -268,6 +489,8 @@ export PYTORCH_MPS_HIGH_WATERMARK_RATIO=0.8
 export SDPA_ALLOW_FLASH_ATTN=1
 ```
 
+Additionally, to reduce memory spikes, preprocessing and dataloader workers are capped by default on MPS. Override via `preprocessing_num_workers` and `dataloader_num_workers` in `config.ini` if needed. Evaluation now includes a one-shot OOM fallback that halves the eval batch size and retries once before failing.
+
 ### Recommended Batch Sizes (Updated for PyTorch 2.3 with Flash Attention 2)
 
 #### Standard Fine-Tuning
@@ -292,6 +515,43 @@ export SDPA_ALLOW_FLASH_ATTN=1
 3. **Gradual increase**: Increase batch sizes if no swapping occurs
 4. **Gradient accumulation**: Use to simulate larger batches
 
+## CI
+
+A macOS CI workflow performs smoke import tests, prepares a tiny streaming dataset, and runs a short evaluation with a tiny model. See `.github/workflows/ci-macos.yml`.
+
+- Optional mini-train smoke: set repository variable `RUN_MINI_TRAIN=1` to enable a tiny guarded train step using `openai/whisper-tiny` (kept off by default to preserve CI time).
+
+## Typer CLI (Recommended)
+
+Use the Typer CLI for a friendlier interface that delegates to the same core modules:
+
+```bash
+# Prepare data
+python cli_typer.py prepare data3
+
+# Train
+python cli_typer.py finetune medium-data3 --json-logging
+
+# Evaluate
+python cli_typer.py evaluate medium-data3
+python cli_typer.py evaluate whisper-tiny+test_streaming
+
+# Export (HF/SafeTensors model dir)
+# Exports the model directory as-is with SafeTensors (no GGML/CT2 conversion)
+python cli_typer.py export output/{id}-medium-data3
+```
+
+The legacy `main.py` and scripts remain supported.
+
+## Visualizer Controls
+
+- Start the visualizer by setting `visualize=True` in your profile. It auto-binds to `127.0.0.1` and picks a free port starting at 8080.
+- Throttle update frequency with `viz_update_steps` (defaults to your `logging_steps`).
+- In the UI, use the bottom-right controls to toggle heavy elements on/off at runtime: 3D view, Attention heatmap, Token cloud, Spectrogram.
+- You can also pass URL params for a lighter mode:
+  - `?viz=light` disables heavy widgets by default
+  - `show3D=0`, `showAttention=0`, `showTokens=0`, `showSpectrogram=0` to individually disable
+
 ## Project Structure
 ```
 whisper-fine-tuner-macos/
@@ -303,11 +563,16 @@ whisper-fine-tuner-macos/
 │   ├── system_check.py  # Verify GPU/MPS setup
 │   ├── evaluate.py      # Model evaluation
 │   ├── blacklist.py     # Outlier detection
-│   └── export.py        # GGML conversion
+│   └── export.py        # Model dir export (HF/SafeTensors)
 ├── utils/
 │   └── device.py        # Device selection (MPS/CUDA/CPU)
 ├── config.ini           # Training configurations
-└── main.py             # Main entry point
+├── core/
+│   ├── inference.py    # Unified inference utilities (evaluate/blacklist)
+│   └── ...
+└── main.py             # Legacy entry point (still supported)
+
+Run artifacts include enriched metadata for reproducibility: device, OS and library versions are stamped into `metadata.json` for each run.
 ```
 
 ## Common Issues
@@ -321,6 +586,12 @@ whisper-fine-tuner-macos/
 1. **Import errors**: Check all dependencies are installed
 2. **OOM errors**: Reduce batch size or enable gradient checkpointing
 3. **Data loading**: Ensure audio files are accessible and valid
+
+## For Contributors
+
+- Canonical CLI: Prefer `cli_typer.py` for new workflows; `main.py` remains for backward compatibility.
+- Unified inference: Use `core/inference.py` from evaluation/blacklist paths to avoid duplication.
+- Tests: Run `pytest` for fast unit coverage (no heavy model pulls). See `tests/` for examples.
 
 ### Distillation-Specific Issues
 1. **Out of memory with dual models**: Reduce batch sizes significantly - distillation requires ~2x memory
@@ -389,10 +660,10 @@ kl_weight = 0.5        # Weight balancing KL divergence vs cross-entropy loss
 2. **Run distillation training using profiles**:
 ```bash
 # Create a distilled whisper-small from whisper-large-v2 teacher
-python main.py finetune distil-small-from-large
+python cli_typer.py finetune distil-small-from-large
 
 # Or create a distilled whisper-medium from whisper-large-v2 teacher  
-python main.py finetune distil-medium-from-large
+python cli_typer.py finetune distil-medium-from-large
 ```
 
 Alternatively, run distillation directly:
@@ -448,7 +719,7 @@ Distillation requires loading both teacher and student models simultaneously:
 
 ### Multi-GPU Training (CUDA only)
 ```bash
-torchrun --nproc_per_node=2 main.py --profile large-v2-data3
+torchrun --nproc_per_node=2 cli_typer.py finetune large-v2-data3
 ```
 
 ### Custom Configurations
