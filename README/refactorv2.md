@@ -20,13 +20,13 @@ Goal: A-grade reliability with simpler architecture, no feature loss.
 - [x] Refactor `scripts/blacklist.py` to call `core/inference.py`
 
 ## Phase 1b — Shared dataset preprocessing
-- [ ] Add `utils/dataset_prep.py`
+- [x] Add `utils/dataset_prep.py`
   - `load_audio_local_or_gcs(path, sr, timeout=10, retries=2)`
   - `encode_labels(tokenizer, text, max_len)`
   - `resolve_language(language_mode, sample_lang, forced_lang)`
-- [ ] Use in:
+- [x] Use in:
   - `models/whisper/finetune.py`
-  - `models/whisper_lora/finetune.py`
+  - `models/whisper_lora/finetune.py` (N/A - LoRA path uses collator; no duplicate prepare found)
   - `models/distil_whisper/finetune.py`
   - `scripts/evaluate.py`
   - `scripts/blacklist.py`
@@ -51,9 +51,9 @@ Goal: A-grade reliability with simpler architecture, no feature loss.
 - [x] `tests/test_inference.py`: tiny local wav and fake-GCS (monkeypatch) round-trip → non-empty decode + metric call
 
 ## Phase 5 — Docs / CLI polish
-- [ ] README export section: reflect chosen export path (rename vs real conversion)
-- [ ] Document Typer CLI usage as the recommended interface (keep `main.py`)
-- [ ] Note new `core/inference.py` and `utils/dataset_prep.py` for contributors
+- [x] README export section: reflect chosen export path (rename vs real conversion)
+- [x] Document Typer CLI usage as the recommended interface (keep `main.py`)
+- [x] Note new `core/inference.py` and `utils/dataset_prep.py` for contributors
 
 ## Acceptance criteria
 - One inference path used by evaluation and blacklist; no duplicate dataset mapping.
@@ -76,7 +76,9 @@ Notes:
 ## Phase 6 — CI + E2E Reliability (A+ bar)
 - [ ] macOS CI workflow (GitHub Actions):
   - Import smoke, tiny streaming prepare, evaluation run (whisper-tiny), artifact upload (logs/metrics).
-  - Matrix: Python 3.10/3.11; cache HF hub; enforce `requirements.lock` install via uv/pip-tools.
+  - Start simple: single Python version (3.10). Add matrix later.
+  - Cache: Enable HF hub cache with stable keys to avoid model re-pulls.
+  - Budgets: smoke < 4 min, tiny eval < 6 min. Fail fast on overruns.
   - Optional mini-train guarded by `RUN_MINI_TRAIN=1` (1–2 batches, LoRA tiny), with timeout and artifact on failure.
   - Concurrency: cancel in-progress on new pushes; fail CI on non-zero exit codes and coverage below threshold (see Phase 12).
 - [ ] CI failure diagnostics:
@@ -84,26 +86,27 @@ Notes:
   - Emit summarized error and remediation hints in job summary (e.g., MPS fallback, batch-size reduction).
 
 ## Phase 7 — Determinism & Resilience
-- [ ] Deterministic mode:
-  - Global seeding in one place (torch/numpy/random), `torch.use_deterministic_algorithms(True)` where supported; document MPS caveats.
+- [ ] Deterministic mode (best-effort only):
+  - Global seeding (torch/numpy/random). Use `torch.use_deterministic_algorithms(True)` only where supported.
+  - Document MPS non-determinism caveats prominently; do not over-index on strict determinism.
   - Dataloader worker seeding; pinned shuffle seeds for HF datasets.
 - [ ] Robust GCS streaming:
   - Bounded timeouts + exponential backoff + limited retries; structured WARN on fallback (CI-safe silence preserved only in CI mode).
-  - Sample-level try/except guards with skipped-sample counters written to `metrics.json`.
+  - Sample-level try/except guards with skipped-sample counters written to `metrics.json` (define exact fields and increments).
 - [ ] Run recovery:
   - Detect stale “running” runs without `completed` marker; mark as `failed` with reason on next startup; add `manage.py cleanup --stale`.
 
 ## Phase 8 — Observability & Performance
-- [ ] Extend `core/runs.write_metrics(...)`:
+- [ ] (Defer until CI is stable) Extend `core/runs.write_metrics(...)`:
   - Persist per-phase timings (prepare/train/eval), throughput (samples/sec), and peak memory (MPS/CUDA) per run.
   - Merge step logs into rolling aggregates (mean/min/max loss per N steps) to keep files small.
-- [ ] Lightweight benchmarking:
+- [ ] (Defer) Lightweight benchmarking:
   - `manage.py overview --perf` to print averages of throughput/memory across completed runs.
 
 ## Phase 9 — Packaging & CLI Distribution
-- [ ] Add `pyproject.toml` with console scripts:
-  - Entry point `whisper-tuner` → Typer CLI; extras: `[viz]`, `[gcs]`, `[dev]`.
-  - Ensure importable modules (`core/*`, `models/common/*`, `utils/*`) are packaged.
+- [ ] Add minimal `pyproject.toml` with a single console script:
+  - Entry point `whisper-tuner` → Typer CLI.
+  - Defer extras (`[viz]`, `[gcs]`, `[dev]`) to a later release.
 - [ ] Installation docs:
   - pip/pipx instructions; minimal env bootstrap that respects torch-per-platform guidance.
 
@@ -120,7 +123,7 @@ Notes:
 - [ ] LoRA smoke:
   - 1–2 steps training; assert `adapter_model/` exists; verify `train_results.json` merged into `metrics.json`.
 - [ ] Distillation dry-run:
-  - Instantiate teacher/student; single forward pass on 1–2 samples; assert no OOM and proper loss composition; a `--fast` flag to skip full train.
+  - Instantiate teacher/student; single forward pass on 1–2 samples; assert no OOM and proper loss composition; a `--fast` flag to skip full train. Run this last; non-blocking for CI.
 - [ ] Visualizer callback test:
   - Ensure callback attaches; throttled `on_log` does not raise; no server dependency required (mock `get_visualizer()`).
 - [ ] Gather/Manage:
@@ -128,14 +131,27 @@ Notes:
 
 ## Phase 12 — Linting, Types, Coverage Gates
 - [ ] Pre-commit + CI gates:
-  - Ruff (errors + select rules), isort/black style (if desired consistency), mypy (focus on `core/*`, `utils/*`, `scripts/evaluate.py`, `scripts/blacklist.py`).
-  - Coverage: 80%+ for `core/*` and `utils/*`, 60% global minimum (exclude heavy trainers).
+  - Ruff (errors + select rules), isort/black style, mypy (focus on `core/*`, `utils/*`, `scripts/evaluate.py`).
+  - Coverage (start narrow/low, ratchet later): target only `core/*`, `utils/*`, `scripts/evaluate.py` with 60%+; skip global threshold initially.
 - [ ] Type hints:
   - Add typings to new modules (`core/inference.py`, `utils/dataset_prep.py`, `core/config.py` validators).
 
 ## Phase 13 — Error Taxonomy & UX
-- [ ] `core/errors.py` with typed exceptions:
-  - `ConfigError`, `DatasetError`, `DeviceError`, `StreamingError`, `ExportError`; map to exit codes in `main.py`.
-  - Write `error_code` alongside `error_message` in run metadata for quick triage.
+- [ ] Minimal error-to-exit-code map (start simple):
+  - Map common failure categories to clear exit codes and messages at the CLI boundary.
+  - Add `error_code` alongside `error_message` in run metadata for quick triage.
 - [ ] Helpful CLI remediation:
   - Common hint mapping (e.g., “Try PYTORCH_ENABLE_MPS_FALLBACK=1”, “Reduce batch size”, “Install torch with correct index-url”).
+
+---
+
+Additional clarifications/specs and guardrails
+
+- Naming audit: ensure docs/CLI say “generate” for inference APIs; keep Whisper task name “transcribe” only where required by HF (`get_decoder_prompt_ids(language, task="transcribe")`).
+- constants.py size: consider splitting into `constants/training.py`, `constants/audio.py`, `constants/eval.py` later to reduce coupling (post-Phase 12).
+- Streamed I/O guardrails: standardize `load_audio_local_or_gcs` retries/timeouts (default retries=2) and emit `skipped_samples`/`stream_failures` counters in `metrics.json`.
+- Language mode precedence (single spec): override:<lang> > strict (batch language) > mixed; tests remain the spec of truth.
+- CI risks: pre-warm HF cache to avoid model pull cost on macOS runners; define clear budgets as above.
+- Run recovery: include PID/lockfile guard to never mark a live run as failed.
+- Visualizer coupling: callback optional and no-op by default; never block runs.
+- Config coercion: strict on booleans/enums; fail fast at startup with a single clear error.

@@ -537,6 +537,7 @@ python cli_typer.py evaluate medium-data3
 python cli_typer.py evaluate whisper-tiny+test_streaming
 
 # Export (HF/SafeTensors model dir)
+# Exports the model directory as-is with SafeTensors (no GGML/CT2 conversion)
 python cli_typer.py export output/{id}-medium-data3
 ```
 
