@@ -13,6 +13,7 @@ A comprehensive framework for fine-tuning OpenAI's Whisper models with native Ap
 - 🔍 **Outlier Detection**: Automatic blacklisting of problematic samples
 - 🏷️ **Pseudo-Labeling**: Generate labels for unlabeled data
 - 📦 **Export**: Export trained checkpoints to portable HF/SafeTensors directories
+- 🧳 **One-Click GGUF Export (whisper.cpp)**: Automatically converts trained runs to GGUF after training and prints a clickable link; LoRA adapters are merged before conversion
 - ☁️ **Cloud Storage Streaming**: Train on massive datasets without local storage
 
 ## Architecture Overview
@@ -164,7 +165,7 @@ The Wizard is a beautiful, step-by-step CLI that guides you through setting up a
 - Helps you choose a training method: Standard, LoRA, or Distillation
 - Filters model choices by your available memory and method
 - Auto-detects local datasets in `data/*` and offers common 🤗 datasets
-- NEW: "Import from Google BigQuery" — interactively select project/dataset/table, choose languages and transcript column, and materialize a minimal `_prepared.csv` locally for immediate training (no loader changes required)
+- NEW: "Import from Google BigQuery" — interactively select project/dataset/table, choose languages and transcript column, and materialize a minimal `_prepared.csv` locally for immediate training (no loader changes required). The BigQuery option is shown first for quick access.
 - Collects method-specific parameters (e.g., LoRA rank/alpha, distillation temperature/teacher)
 - Estimates training time and memory usage for your choices
 - Optionally enables the live Training Visualizer
@@ -478,6 +479,27 @@ python cli_typer.py evaluate whisper-tiny+test_streaming
 # Legacy (still supported)
 python main.py evaluate medium-data3
 python scripts/evaluate.py --model_name_or_path output/{id}-medium-data3 --dataset data3
+### 5. Export to GGUF (whisper.cpp)
+
+After a successful training run, the system automatically attempts to export your model to GGUF format compatible with `whisper.cpp` and prints a clickable `file://` link to the generated `.gguf` file.
+
+- If your run directory contains a LoRA adapter (`adapter_config.json`), the exporter first merges the adapter into the base Whisper weights and then converts.
+- If `whisper.cpp` is not found in a common location (e.g., `~/whisper.cpp`), the export is skipped with guidance.
+
+Manual export at any time:
+```bash
+python -m main export-gguf output/{id}-<profile>
+```
+
+Expected output file inside the run directory:
+```
+ggml-model.gguf
+```
+
+Notes:
+- The exporter searches for `whisper.cpp` in `~/whisper.cpp`, `./whisper.cpp`, and `../whisper.cpp`. If you keep it elsewhere, symlink it or copy the repo to one of these locations.
+- The exporter uses `models/convert-hf-to-gguf.py` from `whisper.cpp` and saves in `f16` by default.
+
 ```
 
 ## LoRA Quick Start
