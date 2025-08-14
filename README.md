@@ -14,6 +14,7 @@ A comprehensive framework for fine-tuning OpenAI's Whisper models with native Ap
 - 🏷️ **Pseudo-Labeling**: Generate labels for unlabeled data
 - 📦 **Export**: Export trained checkpoints to portable HF/SafeTensors directories
 - 🧳 **One-Click GGUF Export (whisper.cpp)**: Automatically converts trained runs to GGUF after training and prints a clickable link; LoRA adapters are merged before conversion
+- 🧠 **Hybrid CoreML Export (ANE encoder)**: Automatically exports the encoder to CoreML FP16 for ANE while keeping the decoder in GGUF for whisper.cpp; works for Standard, LoRA (merged), and Distillation
 - ☁️ **Cloud Storage Streaming**: Train on massive datasets without local storage
 
 ## Architecture Overview
@@ -166,6 +167,10 @@ The Wizard is a beautiful, step-by-step CLI that guides you through setting up a
 - Filters model choices by your available memory and method
 - Auto-detects local datasets in `data/*` and offers common 🤗 datasets
 - NEW: "Import from Google BigQuery" — interactively select project/dataset/table, choose languages and transcript column, and materialize a minimal `_prepared.csv` locally for immediate training (no loader changes required). The BigQuery option is shown first for quick access.
+- NEW: Mandatory Training Parameters step asks for:
+  - Learning rate (default 1e-5)
+  - Number of epochs (default 3)
+  - Warmup steps (default 50)
 - Collects method-specific parameters (e.g., LoRA rank/alpha, distillation temperature/teacher)
 - Estimates training time and memory usage for your choices
 - Optionally enables the live Training Visualizer
@@ -217,7 +222,7 @@ python wizard.py
 
 7. Start Training
    - Wizard generates a temporary INI file with a profile named like `wizard_YYYYMMDD_HHMMSS`
-   - Calls the standard training pipeline: `python main.py finetune <profile> --config <temp.ini>`
+   - Calls the standard training pipeline passing the correct `--config <temp.ini>` path
    - Cleans up the temporary file after starting
 
 ##### Under the Hood
@@ -479,26 +484,32 @@ python cli_typer.py evaluate whisper-tiny+test_streaming
 # Legacy (still supported)
 python main.py evaluate medium-data3
 python scripts/evaluate.py --model_name_or_path output/{id}-medium-data3 --dataset data3
-### 5. Export to GGUF (whisper.cpp)
+### 5. Export to GGUF (whisper.cpp) and CoreML (Hybrid)
 
-After a successful training run, the system automatically attempts to export your model to GGUF format compatible with `whisper.cpp` and prints a clickable `file://` link to the generated `.gguf` file.
+After a successful training run, the system automatically attempts two exports:
 
-- If your run directory contains a LoRA adapter (`adapter_config.json`), the exporter first merges the adapter into the base Whisper weights and then converts.
-- If `whisper.cpp` is not found in a common location (e.g., `~/whisper.cpp`), the export is skipped with guidance.
+- GGUF decoder for `whisper.cpp` with a clickable `file://` link
+- CoreML FP16 encoder (hybrid approach) for ANE acceleration with a clickable `file://` link
+
+- If your run directory contains a LoRA adapter (`adapter_config.json`), the exporter first merges the adapter into the base Whisper weights before conversion (both GGUF and CoreML encoder).
+- If the `whisper.cpp` tools are not present, we auto-clone them to `tools/whisper.cpp/` and use the converter; otherwise we skip with guidance.
 
 Manual export at any time:
 ```bash
 python -m main export-gguf output/{id}-<profile>
+python -m scripts.export_coreml output/{id}-<profile>
 ```
 
-Expected output file inside the run directory:
+Expected output files inside the run directory:
 ```
-ggml-model.gguf
+model-f16.gguf
+coreml/whisper-encoder.mlmodelc  # or whisper-encoder.mlpackage
+coreml/export_manifest.json
 ```
 
 Notes:
-- The exporter searches for `whisper.cpp` in `~/whisper.cpp`, `./whisper.cpp`, and `../whisper.cpp`. If you keep it elsewhere, symlink it or copy the repo to one of these locations.
-- The exporter uses `models/convert-hf-to-gguf.py` from `whisper.cpp` and saves in `f16` by default.
+- The exporter manages `tools/whisper.cpp` for you and uses its conversion scripts. GGUF uses `f16` by default.
+- The CoreML encoder export uses FP16 with enumerated input shapes; the decoder remains in GGUF for runtime via whisper.cpp (hybrid).
 
 ```
 
