@@ -170,11 +170,11 @@ Specialized batch assembly for distillation:
 #### Training Configuration
 | Parameter | Type | Recommended | Rationale |
 |-----------|------|-------------|-----------|
-| `batch_size` | int | 4-8 | Dual model memory requirements |
-| `gradient_accumulation` | int | 4-8 | Effective large batches |
+| `per_device_train_batch_size` | int | 4-8 | Dual model memory requirements |
+| `gradient_accumulation_steps` | int | 4-8 | Effective large batches |
 | `learning_rate` | float | 1e-5 | Lower for stability |
 | `warmup_steps` | int | 500 | Extended for convergence |
-| `num_epochs` | int | 3-5 | Sufficient for knowledge transfer |
+| `num_train_epochs` | int | 3-5 | Sufficient for knowledge transfer |
 
 ### Platform Optimizations
 

@@ -196,9 +196,9 @@ lora_target_modules = [
 | Parameter | Recommended | Standard FT | Rationale |
 |-----------|-------------|-------------|-----------|
 | `learning_rate` | 1e-4 | 5e-5 | Higher LR for fewer parameters |
-| `batch_size` | 16-32 | 8 | More memory available |
+| `per_device_train_batch_size` | 16-32 | 8 | More memory available |
 | `warmup_steps` | 10 | 100 | Faster convergence |
-| `num_epochs` | 3-5 | 3 | May need more epochs |
+| `num_train_epochs` | 3-5 | 3 | May need more epochs |
 
 ### 8-bit Quantization Options
 
