@@ -250,6 +250,29 @@ Select temperature:
 Ready to start training? (y/n): _
 ```
 
+### Gemma 3n Integration (New)
+
+#### Step 0b: Model Family Selection
+After the welcome screen, the wizard now asks you to choose a model family:
+
+```
+? Choose your model family:
+  ❯ 🌬️ Whisper - OpenAI's robust ASR model
+    💎 Gemma - Google's new multimodal model (audio+text)
+```
+
+- If you select **Gemma**, the wizard applies Gemma-specific rules:
+  - Training method is restricted to **LoRA** in the initial release
+  - Model list is filtered to Gemma variants (e.g., `gemma-3n-e2b-it`, `gemma-3n-e4b-it`)
+  - Memory gating uses `ModelSpecs` with a 20% safety buffer to hide infeasible options
+  - The confirmation screen shows Gemma dtype and attention implementation
+
+#### Confirmation Screen Enhancements for Gemma
+- The wizard displays and enforces:
+  - **Precision (dtype)**: prefers `bfloat16` on MPS; falls back to `float32` if unavailable
+  - **Attention Implementation**: forces `eager` for MPS stability
+- These settings are also injected into the generated training profile.
+
 ## Advanced Features
 
 ### BigQuery Integration

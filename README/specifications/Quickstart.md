@@ -105,9 +105,19 @@ System Status: ✅ Apple Silicon (MPS) | 16GB RAM | Ready
 
 ---
 
-## Step 3: Wizard Walkthrough
+## Step 3: Wizard Walkthrough (Now with Gemma)
 
 The wizard will ask you 6 simple questions. Here's exactly what you'll see and the recommended answers for your first training:
+
+### Question 0: Model Family
+
+```
+? Choose your model family:
+  ❯ 🌬️ Whisper - OpenAI's robust ASR model
+    💎 Gemma - Google's new multimodal model (audio+text)
+```
+
+If you choose Gemma, the wizard restricts training to **LoRA** and filters the model list to Gemma variants. The confirmation screen also surfaces Gemma dtype (bf16 preferred on MPS) and attention implementation (eager).
 
 ### Question 1: Training Method
 

@@ -103,6 +103,17 @@ def load_audio_local_or_gcs(path_or_audio, sampling_rate):
 - Optimized for Apple Silicon via Accelerate
 ```
 
+```python
+# Gemma 3n (USM audio tower) via AutoProcessor
+- For Gemma 3n, feature extraction is delegated to Hugging Face's
+  `AutoProcessor` (e.g., `google/gemma-3n-E2B-it`).
+- The training collator builds minimal chat-style messages combining an
+  `<audio:attached>` placeholder with a transcription turn, and the processor
+  packs audio+text into the correct multimodal tensors.
+- JSONL preparation (optional) is supported by `utils/gemma_dataset_prep.py`
+  for inspection and reproducibility.
+```
+
 #### 3. Data Quality Management System
 
 ##### Patch System Architecture

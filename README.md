@@ -16,6 +16,7 @@ A comprehensive framework for fine-tuning OpenAI's Whisper models with native Ap
 - 🧳 **One-Click GGUF Export (whisper.cpp)**: Automatically converts trained runs to GGUF after training and prints a clickable link; LoRA adapters are merged before conversion
 - 🧠 **Hybrid CoreML Export (ANE encoder)**: Automatically exports the encoder to CoreML FP16 for ANE while keeping the decoder in GGUF for whisper.cpp; works for Standard, LoRA (merged), and Distillation
 - ☁️ **Cloud Storage Streaming**: Train on massive datasets without local storage
+- 💎 **Gemma 3n (Google) Audio LoRA on MPS**: Fine-tune Gemma 3n’s audio capability via HF Transformers + PEFT on Apple Silicon; fully integrated into the wizard
 
 ## Architecture Overview
 
@@ -436,6 +437,39 @@ python cli_typer.py finetune medium-lora-data3
 ```
 
 The system automatically detects GCS paths and streams audio on-demand during training.
+
+## Gemma 3n (Google) – Audio LoRA on Apple Silicon
+
+Gemma 3n multimodal (audio+text) is supported for parameter‑efficient fine‑tuning (LoRA) on Apple Silicon using PyTorch MPS.
+
+Quickstart:
+
+```bash
+# 1) Environment preflight & a tiny profiler
+python scripts/gemma_preflight.py
+python scripts/gemma_profiler.py --model google/gemma-3n-E2B-it
+
+# 2) Run the wizard → choose Gemma family → LoRA → E2B (⭐ Recommended)
+python wizard.py
+
+# 3) Optional: tiny overfit sanity (16–64 samples)
+python scripts/gemma_tiny_overfit.py --profile gemma-lora-test --max-samples 32
+
+# 4) Evaluate (WER/CER) on a validation CSV
+python tools/eval_gemma_asr.py \
+  --csv data/datasets/<your_dataset>/validation.csv \
+  --model google/gemma-3n-E2B-it \
+  --adapters output/<your_run>/ \
+  --text-column text \
+  --limit 200
+```
+
+Notes (MPS):
+- dtype prefers bfloat16 on MPS; falls back to float32 if bf16 unsupported
+- attention implementation forced to `eager` for stability on MPS
+- avoid `PYTORCH_ENABLE_MPS_FALLBACK` in production (silent CPU ops)
+
+See `README/specifications/Gemma3n.md` for full details.
 
 ## Quick Start (Recommended: Typer CLI)
 

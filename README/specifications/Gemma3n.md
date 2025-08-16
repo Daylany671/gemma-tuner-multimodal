@@ -125,4 +125,98 @@ target_modules = q_proj,k_proj,v_proj,o_proj
 - **Initial Scope**: The initial integration will focus on LoRA fine-tuning for audio transcription. Other modalities (vision) and training methods (distillation) are out of scope for the first version.
 - **MLX Instability**: As noted in the field guide, `mlx-lm` has known issues with Gemma's audio tower. This integration will **only** support the PyTorch MPS backend.
 
-## Implementation Progress 
+## Implementation Progress (track your progress and take notes below)
+
+- [x] Created `models/gemma/finetune.py` with Gemma 3n LoRA trainer
+  - Loads `AutoModelForCausalLM` + `AutoProcessor`
+  - Prefers bf16 on MPS (probe); falls back to float32
+  - Uses eager attention; injects LoRA (`q_proj,k_proj,v_proj,o_proj` with auto-discovery fallback)
+  - Implements `DataCollatorGemmaAudio` that delegates multimodal packing to the processor
+  - Integrates with existing dataset loader (`utils.dataset_utils.load_dataset_split`)
+  - Saves adapters and `train_results.json`
+- [x] Added Gemma routing in orchestrator: `scripts/finetune.py` now detects `gemma` models and dispatches `models.gemma.finetune`
+- [x] Added environment preflight: `scripts/gemma_preflight.py` (arm64, MPS availability, bf16 probe, memory tips)
+- [x] Added quick profiler: `scripts/gemma_profiler.py` (loads model, runs tiny forward, reports dtype/time/RSS)
+- [x] Updated `config.ini`
+  - Added `[group:gemma]` with `dtype=bfloat16`, `attn_implementation=eager`
+  - Added `[model:gemma-3n-e2b-it]` and `[model:gemma-3n-e4b-it]`
+  - Added example `[profile:gemma-lora-test]` using `test_streaming`
+- [x] Add `utils/gemma_dataset_prep.py` (JSONL writer; optional if processor-based collator suffices)
+- [x] Add `scripts/gemma_generate.py` (load base + adapters; transcribe a WAV)
+- [ ] Wizard integration
+  - [ ] Add top-level Model Family selection (Whisper/Gemma)
+  - [x] Add top-level Model Family selection (Whisper/Gemma)
+  - [x] Add Gemma models to wizard gating table for memory checks (`ModelSpecs.MODES`)
+  - [x] Include Gemma models when user selects LoRA method in wizard model list
+  - [x] Gemma-only method: LoRA (SFT hidden for now)
+  - [x] Memory gating for E2B/E4B choices (uses ModelSpecs and available memory with 20% safety buffer)
+  - [x] Confirmation screen: show dtype/attention for Gemma and enforce `attn_implementation=eager` in profile
+- [ ] Tests
+  - [x] Unit: `DataCollatorGemmaAudio` produces required keys; `<bos>` presence via processor template
+  - [x] Tiny overfit (16–64 samples) sanity on MPS (`scripts/gemma_tiny_overfit.py`)
+- [ ] Eval utilities
+  - [x] `tools/eval_gemma_asr.py` (WER/CER via jiwer)
+- [ ] Docs
+  - [x] Add README section with setup, preflight, example run and known caveats
+
+Notes:
+- bitsandbytes is not used on macOS; optimizer defaults to AdamW.
+- TRL SFTTrainer was not assumed; using vanilla Trainer + custom collator for robustness.
+
+## Quickstart: Gemma 3n on Apple Silicon (MPS)
+
+### 1) Environment & Installation
+
+```
+python -c "import platform; print(platform.platform())"  # Must show arm64
+
+pip install --upgrade pip
+pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
+pip install transformers datasets accelerate peft jiwer soundfile
+```
+
+Recommended MPS env (memory pressure control):
+
+```
+export PYTORCH_MPS_HIGH_WATERMARK_RATIO=0.8
+```
+
+### 2) Preflight & Profiling
+
+```
+python scripts/gemma_preflight.py
+python scripts/gemma_profiler.py --model google/gemma-3n-E2B-it
+```
+
+### 3) Run the Wizard (LoRA on Gemma)
+
+```
+python wizard.py
+# Step 0: Choose "Gemma" family → LoRA → gemma-3n-e2b-it (⭐ Recommended)
+# Wizard enforces attn_implementation=eager for Gemma; bf16 preferred on MPS.
+```
+
+### 4) Tiny Overfit Sanity (Optional)
+
+```
+python scripts/gemma_tiny_overfit.py --profile gemma-lora-test --max-samples 32
+```
+
+### 5) Evaluate (WER/CER)
+
+```
+python tools/eval_gemma_asr.py \
+  --csv data/datasets/<your_dataset>/validation.csv \
+  --model google/gemma-3n-E2B-it \
+  --adapters output/<your_run>/ \
+  --text-column text \
+  --limit 200
+```
+
+### Known Caveats (MPS)
+
+- Gemma prefers bfloat16. On MPS, we probe bf16; if unavailable we fall back to float32.
+- Attention implementation is forced to `eager` for stability on MPS.
+- Do not enable `PYTORCH_ENABLE_MPS_FALLBACK` in production; it silently moves ops to CPU.
+- Avoid frequent `.item()` calls during training; they force GPU sync and hurt throughput.
+- `bitsandbytes`/QLoRA are not used on macOS; we use AdamW with gradient accumulation.
