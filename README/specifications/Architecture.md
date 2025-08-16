@@ -54,10 +54,16 @@ graph TB
     OpDispatch --> |lazy load| ExportOp[scripts/export.py]
     OpDispatch --> |lazy load| BlacklistOp[scripts/blacklist.py]
     
+    %% Specialized Utilities
+    CLI --> |validation| GemmaPreflight[scripts/gemma_preflight.py<br/>Environment Validation]
+    CLI --> |profiling| GemmaProfiler[scripts/gemma_profiler.py<br/>Performance Analysis]
+    CLI --> |distributed| DistributedLauncher[train_distributed.py<br/>Multi-GPU Training]
+    
     %% Model Implementations
     FinetuneOp --> |routes to| WhisperModel[models/whisper/finetune.py<br/>Standard Fine-Tuning]
     FinetuneOp --> |routes to| LoRAModel[models/whisper_lora/finetune.py<br/>LoRA Fine-Tuning]
     FinetuneOp --> |routes to| DistilModel[models/distil_whisper/finetune.py<br/>Knowledge Distillation]
+    FinetuneOp --> |routes to| GemmaModel[models/gemma/finetune.py<br/>Gemma 3n Multimodal]
     
     %% Data Flow
     PrepareOp --> DataDir[data/datasets/]
@@ -455,6 +461,104 @@ Each operation implements comprehensive error handling:
 3. Results Persistence
    Predictions CSV → Metrics JSON → Metadata Update
 ```
+
+## Enhanced System Components
+
+### Specialized Utilities
+
+The system includes several specialized utilities that extend core functionality for specific use cases:
+
+#### Environment Validation (`scripts/gemma_preflight.py`)
+**Purpose**: Comprehensive environment validation for Gemma 3n training on Apple Silicon.
+
+**Key Features**:
+- Python architecture validation (native ARM64 vs Rosetta emulation detection)
+- PyTorch MPS backend availability and compatibility verification
+- Hardware-specific dtype support testing (bfloat16 validation)
+- Memory configuration guidance with performance impact analysis
+- Actionable remediation steps for common issues
+
+**Integration**: Called before Gemma training workflows to prevent environment-related failures.
+
+#### Performance Profiling (`scripts/gemma_profiler.py`)
+**Purpose**: Systematic performance analysis and resource usage measurement for Gemma 3n models.
+
+**Key Features**:
+- Model loading with memory-optimized configuration
+- Synthetic workload generation for consistent benchmarking
+- Device optimization testing (MPS, CUDA, CPU)
+- Memory consumption tracking and performance measurement
+- Structured metrics output for analysis and planning
+
+**Integration**: Used for performance baseline establishment and hardware evaluation.
+
+#### Distributed Training Launcher (`train_distributed.py`)
+**Purpose**: Multi-GPU training orchestration with gym strategy integration.
+
+**Key Features**:
+- Single-machine multi-GPU coordination
+- Strategy-based distributed training (AllReduce, DiLoCo)
+- Apple Silicon MPS compatibility with Gloo backend
+- Rank isolation and checkpoint management
+- Seamless integration with existing training pipeline
+
+**Integration**: Optional parallel workflow for accelerated training on multi-GPU systems.
+
+### AI-First Documentation Patterns
+
+The system implements comprehensive AI-first documentation standards designed for AI developer maintainability:
+
+#### Documentation Philosophy
+**Core Principle**: Every comment is a prompt for the next AI developer. Documentation must provide complete context for understanding, modifying, and extending code without human intervention.
+
+#### Implementation Standards
+
+**1. Comprehensive File Headers**:
+- Complete architecture overview for each module
+- Detailed responsibility breakdown and integration points
+- Cross-file connection documentation with "Called by" and "Calls to" sections
+- Performance considerations and Apple Silicon optimizations
+
+**2. Named Constants Classes**:
+- All magic numbers replaced with descriptive named constants
+- Comprehensive explanations for configuration values
+- Grouped constants by functional area with clear naming
+- Documentation of performance implications and valid ranges
+
+**3. Function Documentation Enhancement**:
+- Detailed parameter and return value documentation
+- Complete error handling and fallback strategy description
+- Integration examples and usage patterns
+- Performance notes and optimization guidance
+
+**4. Cross-File Integration Documentation**:
+- Explicit documentation of module dependencies and interactions
+- Clear data flow descriptions between components
+- Integration testing strategies and validation approaches
+- Error propagation and recovery mechanisms
+
+#### Enhanced Components
+
+The following components have been enhanced with AI-first documentation:
+
+- **distributed/trainer.py**: Comprehensive gym strategy integration documentation
+- **scripts/finetune.py**: Enhanced model routing and error handling patterns
+- **train_distributed.py**: Complete distributed training orchestration documentation
+- **scripts/gemma_generate.py**: Detailed inference pipeline and integration examples
+- **utils/gemma_dataset_prep.py**: Comprehensive dataset preparation workflow documentation
+- **scripts/gemma_preflight.py**: Environment validation logic with remediation guidance
+- **scripts/gemma_profiler.py**: Performance profiling methodology and integration points
+- **wizard.py**: Enhanced user experience flow documentation
+- **utils/dataset_prep.py**: Core dataset utilities with cross-file integration details
+- **tests/test_distributed_launcher.py**: Testing strategy and validation approach documentation
+
+#### Benefits of AI-First Documentation
+
+1. **Autonomous Development**: AI developers can understand and modify code without human intervention
+2. **Consistent Patterns**: Standardized documentation structure across all components
+3. **Integration Clarity**: Clear understanding of cross-file dependencies and data flow
+4. **Error Prevention**: Comprehensive error handling and fallback documentation
+5. **Performance Optimization**: Detailed performance considerations and Apple Silicon optimizations
 
 ## Key Design Decisions
 

@@ -36,56 +36,69 @@ Gemma 3n will be integrated as a new model family alongside Whisper. The existin
     - **Challenge**: Gemma was pre-trained using `bfloat16`. The PyTorch MPS backend can be sensitive to floating-point precision, potentially leading to `NaN` loss values when using the default `float16`.
     - **Solution**: The training script (`models/gemma/finetune.py`) and wizard will default to using `bfloat16` (`bf16=True` in `SFTConfig`) when an MPS device is detected. If the hardware does not support `bfloat16`, it will fall back to full `float32`, and the user will be warned about increased memory usage.
 
-## CLI Wizard Integration (`wizard.py`)
+## CLI Wizard Integration (`wizard.py`) - ✅ COMPLETED
 
-The wizard will be extended to make Gemma 3n a first-class citizen, maintaining the principle of progressive disclosure.
+The wizard has been successfully extended to make Gemma 3n a first-class citizen with full progressive disclosure support.
 
-### New Wizard Flow
+### Implemented Wizard Flow
 
-1.  **Top-Level Model Family Selection (New Step)**:
-    The first choice after the welcome screen will be the model family.
+1.  **✅ Top-Level Model Family Selection**:
+    The wizard now presents model family choice as the first step after welcome.
     ```
     ? Choose the model family you want to work with:
       ❯ 🌬️ Whisper - The robust ASR model from OpenAI.
         💎 Gemma - The new multimodal model from Google.
     ```
 
-2.  **Gemma Model Selection (Conditional Step)**:
-    If the user selects "Gemma", they will see a Gemma-specific model selection screen.
+2.  **✅ Gemma Model Selection with Hardware Gating**:
+    When "Gemma" is selected, the wizard displays hardware-appropriate options.
     ```
     ? Which Gemma 3n model do you want to fine-tune?
-      ❯ gemma-3n-E2B-it (Elastic 2B) - Faster, smaller memory footprint. ⭐ Recommended
-        gemma-3n-E4B-it (Elastic 4B) - Maximum capability, higher memory usage.
+      ❯ gemma-3n-e2b-it (Elastic 2B) - Faster, smaller memory footprint. ⭐ Recommended
+        gemma-3n-e4b-it (Elastic 4B) - Maximum capability, higher memory usage.
     ```
-    The wizard will perform a memory check and hide options that are not feasible on the user's hardware.
+    **Memory Gating**: Uses `ModelSpecs.MODES` with 20% safety buffer to hide infeasible options based on available system memory.
 
-3.  **Training Method Adaptation**:
-    The training method screen will be adapted. Initially, only LoRA will be offered for Gemma due to the high memory requirements of a full SFT.
+3.  **✅ Training Method Restriction**:
+    For Gemma models, only LoRA is available due to memory requirements.
     ```
     ? Choose your training method for Gemma:
-      ❯ 🎨 LoRA Fine-Tune - The only way to fly on consumer hardware.
+      ❯ 🎨 LoRA Fine-Tune - Optimized for Gemma 3n on consumer hardware.
     ```
+    **Note**: Standard fine-tuning is automatically hidden for Gemma models to prevent memory issues.
 
-4.  **Automatic Configuration**:
-    The wizard will handle all Gemma-specific configuration **automatically** behind the scenes:
-    - It will generate a training configuration that uses `bfloat16` on MPS devices.
-    - It will set up the data pipeline to use the new `gemma_dataset_prep.py` script.
-    - It will configure the `SFTTrainer` with the correct chat template and ensure the `<bos>` token is prefixed.
-    - The user will not be burdened with these details.
+4.  **✅ Automatic Configuration Management**:
+    The wizard handles all Gemma-specific optimizations transparently:
+    - **Data Type Optimization**: Prefers `bfloat16` on MPS; falls back to `float32` if unsupported
+    - **Attention Implementation**: Forces `eager` attention for MPS stability
+    - **Chat Template**: Automatically configures proper multimodal message formatting
+    - **LoRA Configuration**: Uses optimal settings (`rank=16`, `alpha=32`) for Gemma architecture
+    - **Memory Settings**: Applies conservative memory limits for stable training
 
-5.  **Confirmation Screen Update**:
-    The confirmation screen will clearly state the chosen model is Gemma and show relevant parameters.
+5.  **✅ Enhanced Confirmation Screen**:
+    The confirmation screen displays Gemma-specific configuration details:
     ```
     ┌─────────────────────────────────────┐
     │ Training Configuration              │
     ├─────────────────────────────────────┤
     │ Family:     💎 Gemma                 │
-    │ Model:      gemma-3n-E2B-it         │
+    │ Model:      gemma-3n-e2b-it         │
     │ Method:     🎨 LoRA Fine-Tune       │
     │ Dataset:    common_voice (50k)      │
-    ...
+    │ Data Type:  bfloat16                │
+    │ Attention:  eager                   │
+    │ LoRA Rank:  16                      │
+    │ Device:     Apple Silicon (mps)     │
     └─────────────────────────────────────┘
     ```
+
+### Wizard Integration Features
+
+- **✅ Progressive Disclosure**: Complex Gemma settings are handled automatically
+- **✅ Hardware Awareness**: Memory gating prevents selection of incompatible models
+- **✅ Platform Optimization**: Automatic MPS/CUDA/CPU configuration
+- **✅ Error Prevention**: Invalid combinations are prevented at selection time
+- **✅ User Experience**: Seamless flow with clear feedback and recommendations
 
 ## Configuration System (`config.ini`)
 

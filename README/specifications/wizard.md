@@ -250,28 +250,68 @@ Select temperature:
 Ready to start training? (y/n): _
 ```
 
-### Gemma 3n Integration (New)
+### Gemma 3n Integration - ✅ FULLY IMPLEMENTED
 
-#### Step 0b: Model Family Selection
-After the welcome screen, the wizard now asks you to choose a model family:
+#### Step 0b: Model Family Selection - ✅ COMPLETED
+After the welcome screen, the wizard presents the model family choice as the first decision point:
 
 ```
-? Choose your model family:
-  ❯ 🌬️ Whisper - OpenAI's robust ASR model
-    💎 Gemma - Google's new multimodal model (audio+text)
+? Choose the model family you want to work with:
+  ❯ 🌬️ Whisper - The robust ASR model from OpenAI.
+    💎 Gemma - The new multimodal model from Google.
 ```
 
-- If you select **Gemma**, the wizard applies Gemma-specific rules:
-  - Training method is restricted to **LoRA** in the initial release
-  - Model list is filtered to Gemma variants (e.g., `gemma-3n-e2b-it`, `gemma-3n-e4b-it`)
-  - Memory gating uses `ModelSpecs` with a 20% safety buffer to hide infeasible options
-  - The confirmation screen shows Gemma dtype and attention implementation
+#### Gemma-Specific Workflow - ✅ COMPLETED
+When **Gemma** is selected, the wizard automatically applies intelligent constraints and optimizations:
 
-#### Confirmation Screen Enhancements for Gemma
-- The wizard displays and enforces:
-  - **Precision (dtype)**: prefers `bfloat16` on MPS; falls back to `float32` if unavailable
-  - **Attention Implementation**: forces `eager` for MPS stability
-- These settings are also injected into the generated training profile.
+**✅ Training Method Restriction**:
+- Only **LoRA** is available for Gemma models (standard fine-tuning hidden due to memory requirements)
+- Automatically configured with optimal LoRA settings (`rank=16`, `alpha=32`)
+
+**✅ Model Selection with Hardware Gating**:
+- Model list intelligently filtered to show only compatible Gemma variants:
+  - `gemma-3n-e2b-it` (Elastic 2B) - ⭐ Recommended for most hardware
+  - `gemma-3n-e4b-it` (Elastic 4B) - Only shown if sufficient memory available
+- Memory gating uses `ModelSpecs.MODES` with 20% safety buffer to prevent selection of incompatible models
+- Real-time memory estimation prevents out-of-memory errors
+
+**✅ Automatic Configuration Optimization**:
+- **Data Type Management**: Probes hardware for bfloat16 support; automatically falls back to float32
+- **Attention Implementation**: Forces `eager` attention for maximum MPS stability
+- **Memory Management**: Applies conservative memory limits optimized for Apple Silicon
+- **Platform Detection**: Automatic device detection and platform-specific optimizations
+
+#### Enhanced Confirmation Screen for Gemma - ✅ COMPLETED
+The confirmation screen displays comprehensive Gemma-specific configuration:
+
+```
+┌─────────────────────────────────────┐
+│ Training Configuration              │
+├─────────────────────────────────────┤
+│ Family:     💎 Gemma                 │
+│ Model:      gemma-3n-e2b-it         │
+│ Method:     🎨 LoRA Fine-Tune       │
+│ Dataset:    common_voice (50k)      │
+│ Data Type:  bfloat16                │
+│ Attention:  eager                   │
+│ LoRA Rank:  16                      │
+│ Device:     Apple Silicon (mps)     │
+│ Memory:     8.2GB / 32GB (26%)      │
+│ Est. Time:  2.5 hours               │
+└─────────────────────────────────────┘
+```
+
+**✅ Configuration Enforcement**:
+- All Gemma-specific settings are automatically injected into the generated training profile
+- User cannot select incompatible combinations (prevented at UI level)
+- Comprehensive validation prevents common configuration errors
+
+#### Integration Features - ✅ COMPLETED
+- **✅ Progressive Disclosure**: Complex Gemma settings handled transparently
+- **✅ Hardware Awareness**: Memory constraints prevent selection of infeasible models
+- **✅ Platform Optimization**: Automatic MPS/CUDA/CPU detection and configuration
+- **✅ Error Prevention**: Invalid combinations blocked at selection time
+- **✅ User Experience**: Clear feedback, recommendations, and status indicators
 
 ## Advanced Features
 
