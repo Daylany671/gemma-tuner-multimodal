@@ -16,7 +16,8 @@ A comprehensive framework for fine-tuning OpenAI's Whisper models with native Ap
 - 🧳 **One-Click GGUF Export (whisper.cpp)**: Automatically converts trained runs to GGUF after training and prints a clickable link; LoRA adapters are merged before conversion
 - 🧠 **Hybrid CoreML Export (ANE encoder)**: Automatically exports the encoder to CoreML FP16 for ANE while keeping the decoder in GGUF for whisper.cpp; works for Standard, LoRA (merged), and Distillation
 - ☁️ **Cloud Storage Streaming**: Train on massive datasets without local storage
-- 💎 **Gemma 3n (Google) Audio LoRA on MPS**: Fine-tune Gemma 3n’s audio capability via HF Transformers + PEFT on Apple Silicon; fully integrated into the wizard
+- 📊 **NVIDIA Granary Dataset**: Built-in support for the world's largest public speech dataset (~643k hours, 25 languages) with optimized preparation and validation
+- 💎 **Gemma 3n (Google) Audio LoRA on MPS**: Fine-tune Gemma 3n's audio capability via HF Transformers + PEFT on Apple Silicon; fully integrated into the wizard
 
 ## Architecture Overview
 
@@ -203,14 +204,19 @@ python wizard.py
 4. Dataset Selection
    - Auto-detects local datasets under `data/<dataset>/` with `*.csv` or audio files
    - Offers a few common 🤗 datasets (e.g., Common Voice, LibriSpeech)
-   - “Import from Google BigQuery” lets you select:
+   - **NVIDIA Granary Dataset Setup**: Guided configuration for the world's largest public speech dataset
+     - Interactive corpus download guidance (VoxPopuli, YouTube Commons, LibriLight)
+     - Automatic audio source path configuration and validation
+     - Configurable validation modes (full, sampling, or skip for speed/safety trade-offs)
+     - Support for all 25 languages and streaming mode for memory efficiency
+   - "Import from Google BigQuery" lets you select:
      - Project → Dataset → Table (with live listing when possible)
      - Audio path column, transcript source column, and target transcript field (`text_perfect` or `text_verbatim`)
      - Optional language column + multi-select of languages (adds `WHERE language IN (...)`)
      - Optional random sampling and LIMIT to control cost
      - Optional advanced SQL `WHERE` fragment for surgical filtering (e.g., date/duration)
      - The wizard builds a dynamic SQL query, executes it, writes `_prepared.csv`, and updates `config.ini` automatically
-   - “Custom path” lets you type a path (see limitations below)
+   - "Custom path" lets you type a path (see limitations below)
 
 5. Method-Specific Configuration
    - LoRA: choose `lora_r` (rank), `lora_alpha`, dropout (smart defaults)
@@ -606,11 +612,38 @@ python cli_typer.py finetune large-dataset-streaming
 - Dataset > 50GB or > 100 hours of audio
 - Limited RAM (< dataset size)
 - Production training on massive datasets
+- **NVIDIA Granary dataset preparation** (~643k hours)
 
 **Limitations:**
 - No dataset shuffling (processes in order)
 - No exact epoch boundaries
 - Progress bars show steps, not percentages
+
+## NVIDIA Granary Dataset Support
+
+Built-in support for the world's largest public speech dataset with optimized preparation workflow:
+
+```bash
+# Interactive setup via wizard
+python wizard.py  # Select "Setup NVIDIA Granary Dataset"
+
+# Direct preparation
+python main.py prepare-granary --profile granary-en
+
+# With streaming for memory efficiency
+[dataset:granary-streaming]
+streaming_enabled = true
+skip_audio_validation = true  # For fastest preparation
+```
+
+**Key Features:**
+- **25 languages** with ~643k total hours
+- **Flexible validation**: Full/sampling/skip modes for speed vs safety
+- **Streaming support**: Process without loading metadata into memory
+- **Smart path resolution**: Handles inconsistent corpus directory structures
+- **Comprehensive error reporting**: Detailed validation with user guidance
+
+See [Granary Documentation](README/specifications/Datasets.md#nvidia-granary-dataset) for complete setup guide.
 
 ## Apple Silicon Optimization
 
@@ -666,6 +699,9 @@ Use the Typer CLI for a friendlier interface that delegates to the same core mod
 # Prepare data
 python cli_typer.py prepare data3
 
+# Prepare NVIDIA Granary dataset
+python cli_typer.py prepare-granary granary-en
+
 # Train
 python cli_typer.py finetune medium-data3 --json-logging
 
@@ -697,10 +733,11 @@ whisper-fine-tuner-macos/
 │   ├── distil-whisper/  # Knowledge distillation training
 │   └── whisper-lora/    # LoRA (Parameter-Efficient Fine-Tuning)
 ├── scripts/
-│   ├── system_check.py  # Verify GPU/MPS setup
-│   ├── evaluate.py      # Model evaluation
-│   ├── blacklist.py     # Outlier detection
-│   └── export.py        # Model dir export (HF/SafeTensors)
+│   ├── system_check.py     # Verify GPU/MPS setup
+│   ├── evaluate.py         # Model evaluation
+│   ├── blacklist.py        # Outlier detection
+│   ├── prepare_granary.py  # NVIDIA Granary dataset preparation
+│   └── export.py           # Model dir export (HF/SafeTensors)
 ├── utils/
 │   └── device.py        # Device selection (MPS/CUDA/CPU)
 ├── config.ini           # Training configurations
