@@ -380,23 +380,16 @@ pip install torch torchvision torchaudio
 pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
 ```
 
-### 3. Install dependencies
+### 3. Install dependencies (single source of truth)
 ```bash
-pip install -r requirements.txt
-# Optional: dev/test tools
-pip install -r requirements-dev.txt
+# Production install
+pip install .
+
+# Or editable install for development
+pip install -e .
 ```
 
-Note: For deterministic installs, you can use a lockfile with uv or pip-tools:
-```bash
-# Using uv
-uv pip compile requirements.txt -o requirements.lock
-uv pip install -r requirements.lock
-
-# Or using pip-tools
-pip-compile --generate-hashes -o requirements.lock requirements.txt
-pip install -r requirements.lock
-```
+Tip: If you need a lockfile, use your preferred tool (e.g., `uv` or `pip-tools`) against the `pyproject.toml` to generate pinned artifacts for CI/CD.
 
 ### 4. Verify MPS setup
 ```bash
@@ -511,6 +504,9 @@ export PYTORCH_ENABLE_MPS_FALLBACK=1
 # Train (Typer CLI)
 python cli_typer.py finetune medium-data3 --json-logging
 
+# Or use the installed console command after `pip install .`:
+whisper-tuner finetune medium-data3 --json-logging
+
 # Legacy (still supported)
 python main.py finetune medium-data3
 ```
@@ -520,6 +516,10 @@ python main.py finetune medium-data3
 # Evaluate (Typer CLI)
 python cli_typer.py evaluate medium-data3
 python cli_typer.py evaluate whisper-tiny+test_streaming
+
+# Or with console command
+whisper-tuner evaluate medium-data3
+whisper-tuner evaluate whisper-tiny+test_streaming
 
 # Legacy (still supported)
 python main.py evaluate medium-data3
@@ -734,9 +734,10 @@ bash Mamba-ASR-MPS/scripts/eval_batch.sh
 
 ## CI
 
-A macOS CI workflow performs smoke import tests, prepares a tiny streaming dataset, and runs a short evaluation with a tiny model. See `.github/workflows/ci-macos.yml`.
+A macOS CI workflow runs lint and a small set of fast tests on every PR. See `.github/workflows/ci.yml`.
 
-- Optional mini-train smoke: set repository variable `RUN_MINI_TRAIN=1` to enable a tiny guarded train step using `openai/whisper-tiny` (kept off by default to preserve CI time).
+- Lint: `ruff check` + `ruff format --check`
+- Tests: fast, no heavy model downloads (`pytest -k "not slow"`)
 
 ## Typer CLI (Recommended)
 
