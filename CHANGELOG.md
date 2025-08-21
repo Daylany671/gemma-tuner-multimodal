@@ -6,6 +6,23 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [0.2.0] - 2025-08-19
+
+### Added
+- Typer CLI: `system-check` for quick diagnostics
+- Distributed: `distributed-train --dry-run` for CI-safe smoke
+- CI: macOS workflow runs ruff + fast tests only
+- Tests: coverage for bootstrap, config defaults, CLI help, distributed-check, system-check, finetune_core data/trainer
+- Docs: README quick diagnostics section; PR template; CONTRIBUTING; CODEOWNERS
+- Pre-commit: ruff hooks
+
+### Changed
+- Refactor: extracted finetune_core (args/data/trainer); fixed imports
+- Trainer: offline-safe WER load with local_files_only + stub fallback for tests
+
+### Deprecated
+- Legacy `manage.py` wrapped under `whisper-tuner legacy manage` (prefer `runs` group)
+
 ### Added
 - Full Apple Silicon (M1/M2/M3) support via Metal Performance Shaders (MPS)
 - Device-agnostic code that automatically selects MPS/CUDA/CPU

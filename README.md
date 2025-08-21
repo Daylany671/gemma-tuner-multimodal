@@ -37,7 +37,7 @@ The Whisper Fine-Tuner framework is built on a modular, platform-agnostic archit
 
 **Canonical CLI** (`cli_typer.py`):
 - Prefer Typer-based commands for all workflows; it delegates to the same core modules.
-- `main.py` and `manage.py` are legacy entry points and will be removed in a future release. Prefer the `whisper-tuner` CLI.
+- `main.py` and `manage.py` are legacy entry points and will be removed in a future release. Prefer the `whisper-tuner` CLI. For transitional usage, see the `legacy` command group and the migration guide below.
 - **Profile-Based Configuration**: Hierarchical configuration system with inheritance (DEFAULT → group → model → dataset → profile)
 - **Run Management**: Sequential run ID generation with metadata tracking and failure recovery
 - **Operation Routing**: Unified CLI for data preparation, training, evaluation, and export operations
@@ -752,6 +752,45 @@ whisper-tuner distributed-check --hosts-config distributed_hosts.json
 whisper-tuner distributed-train --dry-run
 ```
 
+### Reproducible installs
+
+An optional lockfile `requirements.txt` is provided. Regenerate it whenever `pyproject.toml` changes:
+
+```bash
+pip install pip-tools
+pip-compile pyproject.toml --output-file requirements.txt
+```
+
+CI includes a job that verifies the lockfile is up-to-date.
+
+### Experiment index (CSV + SQLite)
+
+Every completed or failed run updates a simple experiment index for quick comparisons without scanning directories:
+
+- `output/experiments.csv`: human-readable table
+- `output/experiments.db`: SQLite database for queries
+
+Columns include: `run_dir, run_id, run_type, status, start_time, end_time, profile, model, dataset, wer, cer, learning_rate, per_device_train_batch_size, gradient_accumulation_steps, gradient_checkpointing, attn_implementation, dtype`.
+
+Query examples:
+
+```bash
+# Best eval runs by WER
+sqlite3 output/experiments.db "
+SELECT model, dataset, wer, run_dir
+FROM experiments
+WHERE run_type='evaluation' AND status='completed' AND wer IS NOT NULL
+ORDER BY wer ASC LIMIT 10;"
+
+# Compare two profiles across datasets
+sqlite3 output/experiments.db "
+SELECT profile, dataset, wer, cer
+FROM experiments
+WHERE run_type='evaluation' AND status='completed'
+  AND profile IN ('medium-data3','small-data3')
+ORDER BY dataset, wer;"
+```
+
 ### Legacy interface
 
 ```bash
@@ -790,6 +829,10 @@ python cli_typer.py distributed-train --dry-run
 ```
 
 The legacy `main.py` and scripts remain supported.
+
+### Migration guide (legacy → Typer CLI)
+
+See `MIGRATION.md` for a concise mapping from old invocations (main.py/manage.py) to the modern `whisper-tuner` commands. The `legacy` command group also provides wrappers: `whisper-tuner legacy main` and `whisper-tuner legacy manage`.
 
 ### Distributed Training
 
