@@ -53,7 +53,7 @@ The CLI Wizard transforms the complex process of fine-tuning Whisper models into
                   │
         ┌─────────▼─────────────┐
         │ Training Executor      │
-        │ (main.py interface)    │
+        │ (CLI bridge)           │
         └───────────────────────┘
 ```
 
@@ -63,13 +63,13 @@ The CLI Wizard transforms the complex process of fine-tuning Whisper models into
 2. **System Analysis** → Hardware detection, dataset discovery
 3. **Configuration Generation** → Dynamic profile creation
 4. **Validation** → Memory checks, compatibility verification
-5. **Execution** → Subprocess isolation with main.py
+5. **Execution** → Subprocess isolation through the CLI bridge
 6. **Monitoring** → Progress tracking and error handling
 
 ### Integration Architecture
 
 ```python
-wizard.py
+whisper_tuner/wizard/
 ├── show_welcome_screen()          # System detection & branding
 ├── select_training_method()        # Method selection (SFT/LoRA/Distillation)
 ├── select_model()                  # Model selection with constraints
@@ -463,12 +463,12 @@ Configuration Workflow:
 6. Clean up temporary files
 ```
 
-### Integration with main.py
+### Integration with the Internal CLI Bridge
 
 ```bash
 # Generated command
-whisper-tuner finetune \
-    --profile wizard_20240114_143022 \
+python -m main finetune \
+    wizard_20240114_143022 \
     --config /tmp/wizard_configs/config_20240114_143022.ini
 ```
 
@@ -664,11 +664,11 @@ Guidance Patterns:
 
 ## Integration Points
 
-### main.py Execution
+### CLI Execution Bridge
 
 ```python
 Integration Flow:
-wizard.py → config generation → whisper-tuner finetune → training
+wizard.py → config generation → internal `python -m main finetune ... --config ...` bridge → training
 
 Benefits:
 - Subprocess isolation

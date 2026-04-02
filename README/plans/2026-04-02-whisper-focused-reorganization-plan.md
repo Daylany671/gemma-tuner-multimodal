@@ -211,6 +211,7 @@ Phase 4 execution notes:
 - `.github/workflows/ci.yml` and `.github/workflows/ci-macos.yml` are re-enabled, focused on Whisper-only smoke coverage, and free of distributed checks.
 - `.gitignore` was tightened to keep `data/datasets/`, `data_patches/`, `exports/`, `output/`, and model artifacts out of source control.
 - `README.md`, `MIGRATION.md`, and `README/guides/README.md` were updated to document the Mamba extraction and ExoGym removal.
+- A final documentation reconciliation pass aligned remaining README and specification references to the `whisper_tuner/` package layout and the canonical `whisper-tuner` CLI, while preserving explicit notes where legacy shims remain intentionally supported.
 - `pyproject.toml` points to the current script entrypoint (`whisper_tuner.cli_typer`) and repository metadata.
 - PyTorch remains a documented out-of-manifest install prerequisite (`README.md` install sections), with environment-specific installation guidance.
 - Verification command matrix:

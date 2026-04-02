@@ -161,7 +161,7 @@ viz.update_frequency = 5  # Update every 5 steps instead of 10
 ## 🏗️ Architecture
 
 ```
-visualizer.py          # Backend server + data extraction
+whisper_tuner/visualizer.py  # Backend server + data extraction
 ├── templates/
 │   └── index.html    # Main UI with Three.js setup
 └── static/

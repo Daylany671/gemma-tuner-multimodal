@@ -43,7 +43,7 @@ Before setting up Granary, ensure you have:
 The fastest way to set up Granary is through the interactive wizard:
 
 ```bash
-python wizard.py
+whisper-tuner wizard
 ```
 
 1. Choose **"Setup NVIDIA Granary Dataset"** from the dataset options

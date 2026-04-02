@@ -18,9 +18,9 @@ This document outlines the integration of Google's Gemma 3n, a state-of-the-art 
 
 ### System Integration
 
-Gemma 3n will be integrated as a new model family alongside Whisper. The existing architecture (`core/ops.py` dispatch, `models/*/finetune.py` structure) will be extended.
+Gemma 3n will be integrated as a new model family alongside Whisper. The existing architecture (`whisper_tuner/core/ops.py` dispatch, `whisper_tuner/models/*/finetune.py` structure) will be extended.
 
-- **Model Implementation**: A new directory `models/gemma/finetune.py` will be created. It will leverage Hugging Face's `transformers` library to load `AutoModelForCausalLM` and `AutoProcessor` for Gemma 3n models.
+- **Model Implementation**: A new module at `whisper_tuner/models/gemma/finetune.py` will be created. It will leverage Hugging Face's `transformers` library to load `AutoModelForCausalLM` and `AutoProcessor` for Gemma 3n models.
 - **Training Framework**: The project will use the `trl.SFTTrainer`, which is well-suited for Gemma's chat-based format. This requires a specialized data pipeline to format audio-text pairs into the required conversational structure.
 - **Primary Toolkit**: **PyTorch with MPS** is the designated framework for this task, as recommended in the developer field guide for its mature ecosystem (`peft`, `trl`) and flexibility with complex multimodal models. MLX is explicitly avoided due to its current instability with Gemma's audio tower.
 
@@ -28,7 +28,7 @@ Gemma 3n will be integrated as a new model family alongside Whisper. The existin
 
 1.  **Data Preprocessing (The Critical Path)**:
     - **Challenge**: Gemma's audio encoder uses Google's Universal Speech Model (USM), which requires a specific feature extraction process, unlike Whisper's simple log-mel spectrogram.
-    - **Solution**: We will create a new data preparation script, `utils/gemma_dataset_prep.py`. This script will use the official `transformers.GemmaProcessor` to handle all audio processing. This ensures perfect replication of the required feature extraction and tokenization.
+    - **Solution**: We will create a new data preparation script, `whisper_tuner/utils/gemma_dataset_prep.py`. This script will use the official `transformers.GemmaProcessor` to handle all audio processing. This ensures perfect replication of the required feature extraction and tokenization.
 
 2.  **Conversational Data Formatting**:
     - **Challenge**: `SFTTrainer` for Gemma requires input data in a specific chat format with special tokens (`<bos>`, `<start_of_turn>`, `<end_of_turn>`).
@@ -36,9 +36,9 @@ Gemma 3n will be integrated as a new model family alongside Whisper. The existin
 
 3.  **Numerical Stability on MPS**:
     - **Challenge**: Gemma was pre-trained using `bfloat16`. The PyTorch MPS backend can be sensitive to floating-point precision, potentially leading to `NaN` loss values when using the default `float16`.
-    - **Solution**: The training script (`models/gemma/finetune.py`) and wizard will default to using `bfloat16` (`bf16=True` in `SFTConfig`) when an MPS device is detected. If the hardware does not support `bfloat16`, it will fall back to full `float32`, and the user will be warned about increased memory usage.
+    - **Solution**: The training script (`whisper_tuner/models/gemma/finetune.py`) and wizard will default to using `bfloat16` (`bf16=True` in `SFTConfig`) when an MPS device is detected. If the hardware does not support `bfloat16`, it will fall back to full `float32`, and the user will be warned about increased memory usage.
 
-## CLI Wizard Integration (`wizard.py`) - ✅ COMPLETED
+## CLI Wizard Integration (`whisper_tuner/wizard/`) - ✅ COMPLETED
 
 The wizard has been successfully extended to make Gemma 3n a first-class citizen with full progressive disclosure support.
 
@@ -142,22 +142,22 @@ target_modules = q_proj,k_proj,v_proj,o_proj
 
 ## Implementation Progress (track your progress and take notes below)
 
-- [x] Created `models/gemma/finetune.py` with Gemma 3n LoRA trainer
+- [x] Created `whisper_tuner/models/gemma/finetune.py` with Gemma 3n LoRA trainer
   - Loads `AutoModelForCausalLM` + `AutoProcessor`
   - Prefers bf16 on MPS (probe); falls back to float32
   - Uses eager attention; injects LoRA (`q_proj,k_proj,v_proj,o_proj` with auto-discovery fallback)
   - Implements `DataCollatorGemmaAudio` that delegates multimodal packing to the processor
   - Integrates with existing dataset loader (`utils.dataset_utils.load_dataset_split`)
   - Saves adapters and `train_results.json`
-- [x] Added Gemma routing in orchestrator: `scripts/finetune.py` now detects `gemma` models and dispatches `models.gemma.finetune`
-- [x] Added environment preflight: `scripts/gemma_preflight.py` (arm64, MPS availability, bf16 probe, memory tips)
-- [x] Added quick profiler: `scripts/gemma_profiler.py` (loads model, runs tiny forward, reports dtype/time/RSS)
+- [x] Added Gemma routing in orchestrator: `whisper_tuner/scripts/finetune.py` now detects `gemma` models and dispatches `whisper_tuner.models.gemma.finetune`
+- [x] Added environment preflight: `whisper_tuner/scripts/gemma_preflight.py` (arm64, MPS availability, bf16 probe, memory tips)
+- [x] Added quick profiler: `whisper_tuner/scripts/gemma_profiler.py` (loads model, runs tiny forward, reports dtype/time/RSS)
 - [x] Updated `config.ini`
   - Added `[group:gemma]` with `dtype=bfloat16`, `attn_implementation=eager`
   - Added `[model:gemma-3n-e2b-it]` and `[model:gemma-3n-e4b-it]`
   - Added example `[profile:gemma-lora-test]` using `test_streaming`
-- [x] Add `utils/gemma_dataset_prep.py` (JSONL writer; optional if processor-based collator suffices)
-- [x] Add `scripts/gemma_generate.py` (load base + adapters; transcribe a WAV)
+- [x] Add `whisper_tuner/utils/gemma_dataset_prep.py` (JSONL writer; optional if processor-based collator suffices)
+- [x] Add `whisper_tuner/scripts/gemma_generate.py` (load base + adapters; transcribe a WAV)
 - [ ] Wizard integration
   - [ ] Add top-level Model Family selection (Whisper/Gemma)
   - [x] Add top-level Model Family selection (Whisper/Gemma)
@@ -205,9 +205,9 @@ python -m whisper_tuner.scripts.gemma_profiler --model google/gemma-3n-E2B-it
 
 ### 3) Run the Wizard (LoRA on Gemma)
 
-```
-python wizard.py
-# Step 0: Choose "Gemma" family → LoRA → gemma-3n-e2b-it (⭐ Recommended)
+```bash
+whisper-tuner wizard
+# Step 0: Choose "Gemma" family -> LoRA -> gemma-3n-e2b-it (recommended)
 # Wizard enforces attn_implementation=eager for Gemma; bf16 preferred on MPS.
 ```
 

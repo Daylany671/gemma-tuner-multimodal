@@ -86,7 +86,7 @@ You should see output similar to:
 The wizard provides a Steve Jobs-inspired interface that guides you through the entire process with smart defaults for everything.
 
 ```bash
-python wizard.py
+whisper-tuner wizard
 ```
 
 You'll see a welcome screen:
@@ -363,7 +363,7 @@ id,audio_path,text
 - **Solution**: Try a higher learning rate (5e-5 or 1e-4) or more training epochs
 
 **Issue**: Can't find the wizard
-- **Solution**: Make sure you're in the repository root directory and run `python wizard.py`
+- **Solution**: Run `whisper-tuner wizard`. If you need the backward-compatible shim, run `python wizard.py` from the repository root.
 
 ### Getting Help
 

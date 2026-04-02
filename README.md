@@ -63,7 +63,7 @@ output/
 
 #### 2. Device Management Layer
 
-**Unified Device Abstraction** (`utils/device.py`):
+**Unified Device Abstraction** (`whisper_tuner/utils/device.py`):
 - **Platform Detection**: Automatic selection following MPS → CUDA → CPU hierarchy
 - **Memory Management**: Platform-specific strategies for unified (MPS) vs discrete (CUDA) memory
 - **Synchronization**: Device-appropriate synchronization for accurate measurements
@@ -88,20 +88,20 @@ torch.cuda.memory_allocated()
 
 #### 3. Model Training Modules
 
-**Standard Fine-Tuning** (`models/whisper/finetune.py`):
+**Standard Fine-Tuning** (`whisper_tuner/models/whisper/finetune.py`):
 - **Full Parameter Updates**: Trains all model parameters for maximum accuracy
 - **HuggingFace Integration**: Leverages Seq2SeqTrainer for stable training
 - **Memory Requirements**: 16-24GB for small models, scales with model size
 - **Use Case**: Maximum performance when resources are available
 
-**LoRA Training** (`models/whisper_lora/finetune.py`):
+**LoRA Training** (`whisper_tuner/models/whisper_lora/finetune.py`):
 - **Parameter-Efficient**: Trains only 0.2-3% of parameters via low-rank adapters
 - **Memory Efficient**: 4-8GB VRAM vs 16-24GB for standard training
 - **Adapter Architecture**: Targets attention (q_proj, k_proj, v_proj) and feedforward (fc1, fc2) layers
 - **Checkpoint Size**: 10-50MB adapters vs 1GB+ full models
 - **8-bit Quantization**: Optional INT8 quantization for further memory reduction
 
-**Knowledge Distillation** (`models/distil_whisper/finetune.py`):
+**Knowledge Distillation** (`whisper_tuner/models/distil_whisper/finetune.py`):
 - **Teacher-Student Architecture**: Large teacher model guides smaller student training
 - **Dual Loss Function**: α × KL_divergence + (1-α) × cross_entropy
 - **Temperature Scaling**: Smooths probability distributions for better knowledge transfer
@@ -110,7 +110,7 @@ torch.cuda.memory_allocated()
 
 #### 4. Dataset Management System
 
-**Hierarchical Patch System** (`utils/dataset_utils.py`):
+**Hierarchical Patch System** (`whisper_tuner/utils/dataset_utils.py`):
 - **Override System**: Manual transcription corrections via CSV patches
 - **Blacklist Management**: Automatic filtering of problematic samples
 - **Protection Lists**: Preserve high-quality ground truth from blacklisting
@@ -134,7 +134,7 @@ data_patches/{source}/
 
 #### 5. Training Visualizer
 
-**Real-Time Visualization** (`visualizer.py`):
+**Real-Time Visualization** (`whisper_tuner/visualizer.py`):
 - **Flask + SocketIO Backend**: Streams training metrics to web interface
 - **PyTorch Hook Integration**: Extracts gradients, attention weights, and activations
 - **WebGL Frontend**: GPU-accelerated 3D visualizations with Three.js
@@ -160,10 +160,10 @@ if args.visualize:
 
 The Wizard is a beautiful, step-by-step CLI that guides you through setting up a fine-tuning run with smart defaults and progressive disclosure.
 
-- **File**: `wizard.py`
+- **File**: `wizard.py` (compatibility shim over `whisper_tuner.wizard`)
 - **Entrypoints**:
   - `whisper-tuner wizard` (recommended)
-  - `python wizard.py` (direct)
+  - `python wizard.py` (legacy compatibility shim)
 
 ##### What the Wizard Does
 - Detects your compute device (Apple Silicon MPS, CUDA, or CPU) and available memory
@@ -185,7 +185,7 @@ The Wizard is a beautiful, step-by-step CLI that guides you through setting up a
 # Recommended
 whisper-tuner wizard
 
-# Or run directly
+# Or run the legacy shim directly
 python wizard.py
 ```
 
@@ -235,9 +235,9 @@ python wizard.py
    - Cleans up the temporary file after starting
 
 ##### Under the Hood
-- Device detection: `utils/device.get_device()`
+- Device detection: `whisper_tuner.utils.device.get_device()`
 - UI: `rich` + `questionary`
-- Training handoff: `whisper-tuner finetune` via a temporary config file in `temp_configs/`
+- Training handoff: internal `python -m main finetune <profile> --config <temp.ini>` bridge launched from the wizard
 - Visualizer (optional): enables `visualize=True` which the training pipeline detects
 
 ##### Persisting Your Choices
@@ -451,7 +451,7 @@ python -m whisper_tuner.scripts.gemma_preflight
 python -m whisper_tuner.scripts.gemma_profiler --model google/gemma-3n-E2B-it
 
 # 2) Run the wizard → choose Gemma family → LoRA → E2B (⭐ Recommended)
-python wizard.py
+whisper-tuner wizard
 
 # 3) Optional: tiny overfit sanity (16–64 samples)
 python -m whisper_tuner.scripts.gemma_tiny_overfit --profile gemma-lora-test --max-samples 32
@@ -627,7 +627,7 @@ Built-in support for the world's largest public speech dataset with optimized pr
 
 ```bash
 # Interactive setup via wizard
-python wizard.py  # Select "Setup NVIDIA Granary Dataset"
+whisper-tuner wizard  # Select "Setup NVIDIA Granary Dataset"
 
 # Direct preparation
 whisper-tuner prepare-granary granary-en
@@ -803,23 +803,18 @@ See `MIGRATION.md` for a concise mapping from old invocations (main.py/manage.py
 ## Project Structure
 ```
 whisper-fine-tuner-macos/
-├── models/
-│   ├── whisper/         # Standard Whisper fine-tuning
-│   ├── distil-whisper/  # Knowledge distillation training
-│   └── whisper-lora/    # LoRA (Parameter-Efficient Fine-Tuning)
-├── scripts/
-│   ├── system_check.py     # Verify GPU/MPS setup
-│   ├── evaluate.py         # Model evaluation
-│   ├── blacklist.py        # Outlier detection
-│   ├── prepare_granary.py  # NVIDIA Granary dataset preparation
-│   └── export.py           # Model dir export (HF/SafeTensors)
-├── utils/
-│   └── device.py        # Device selection (MPS/CUDA/CPU)
-├── config.ini           # Training configurations
-├── core/
-│   ├── inference.py    # Unified inference utilities (evaluate/blacklist)
-│   └── ...
-└── main.py             # Legacy entry point (still supported)
+├── whisper_tuner/
+│   ├── cli_typer.py        # Canonical Typer CLI backing `whisper-tuner`
+│   ├── core/               # Config, ops, runs, inference, BigQuery
+│   ├── models/             # Whisper, LoRA, distillation, Gemma
+│   ├── scripts/            # Prepare, evaluate, export, blacklist, diagnostics
+│   ├── utils/              # Device, dataset, and shared utilities
+│   ├── wizard/             # Interactive wizard implementation
+│   └── visualizer.py       # Training visualization server
+├── config.ini              # Training configurations
+├── main.py                 # Legacy CLI entry point
+├── manage.py               # Legacy management shim
+└── wizard.py               # Legacy wizard shim
 
 Run artifacts include enriched metadata for reproducibility: device, OS and library versions are stamped into `metadata.json` for each run.
 ```
@@ -1017,11 +1012,11 @@ Our documentation adheres to these principles:
 
 ### Key Documentation Highlights
 
-- **`core/config.py`**: Hierarchical configuration system with complete merge order documentation
-- **`core/runs.py`**: Run management with directory structure diagrams and metadata schemas
-- **`core/ops.py`**: Operation dispatch with deferred import patterns for performance
-- **`utils/device.py`**: Comprehensive platform detection and memory management strategies
-- **`models/*/finetune.py`**: Training implementations with algorithm descriptions and memory requirements
+- **`whisper_tuner/core/config.py`**: Hierarchical configuration system with complete merge order documentation
+- **`whisper_tuner/core/runs.py`**: Run management with directory structure diagrams and metadata schemas
+- **`whisper_tuner/core/ops.py`**: Operation dispatch with deferred import patterns for performance
+- **`whisper_tuner/utils/device.py`**: Comprehensive platform detection and memory management strategies
+- **`whisper_tuner/models/*/finetune.py`**: Training implementations with algorithm descriptions and memory requirements
 
 ### For AI Developers
 
