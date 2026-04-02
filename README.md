@@ -37,9 +37,9 @@ The Whisper Fine-Tuner framework is built on a modular, platform-agnostic archit
 
 #### 1. Training Orchestration System
 
-**Canonical CLI** (`cli_typer.py`):
+**Canonical CLI** (`whisper_tuner/cli_typer.py`, exposed as `whisper-tuner`):
 - Prefer Typer-based commands for all workflows; it delegates to the same core modules.
-- `main.py` and `manage.py` are legacy entry points and will be removed in a future release. Prefer the `whisper-tuner` CLI. For transitional usage, see the `legacy` command group and the migration guide below.
+- `main.py`, `manage.py`, and `cli_typer.py` are compatibility shims. Prefer the `whisper-tuner` CLI. For transitional usage, see the `legacy` command group and the migration guide below.
 - **Profile-Based Configuration**: Hierarchical configuration system with inheritance (DEFAULT → group → model → dataset → profile)
 - **Run Management**: Sequential run ID generation with metadata tracking and failure recovery
 - **Operation Routing**: Unified CLI for data preparation, training, evaluation, and export operations
@@ -162,7 +162,7 @@ The Wizard is a beautiful, step-by-step CLI that guides you through setting up a
 
 - **File**: `wizard.py`
 - **Entrypoints**:
-  - `python manage.py finetune-wizard` (recommended)
+  - `whisper-tuner wizard` (recommended)
   - `python wizard.py` (direct)
 
 ##### What the Wizard Does
@@ -183,7 +183,7 @@ The Wizard is a beautiful, step-by-step CLI that guides you through setting up a
 ##### How to Launch
 ```bash
 # Recommended
-python manage.py finetune-wizard
+whisper-tuner wizard
 
 # Or run directly
 python wizard.py
@@ -698,7 +698,10 @@ The Apple Silicon Mamba-ASR pipeline no longer lives in this repository.
 
 ## CI
 
-A macOS CI workflow runs lint and a small set of fast tests on every PR. See `.github/workflows/ci.yml`.
+CI is split across:
+
+- `.github/workflows/ci.yml` for whisper linting, fast Python test matrix, and CLI smoke.
+- `.github/workflows/ci-macos.yml` for lightweight macOS import and legacy-shim smoke checks.
 
 - Lint: `ruff check` + `ruff format --check`
 - Tests: fast, no heavy model downloads (`pytest -k "not slow"`)
@@ -719,7 +722,7 @@ pip install pip-tools
 pip-compile pyproject.toml --output-file requirements.txt
 ```
 
-CI includes a job that verifies the lockfile is up-to-date.
+CI includes lint, fast test, and CLI smoke workflows for the Whisper-only surface.
 
 ### Experiment index (CSV + SQLite)
 

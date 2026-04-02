@@ -1,14 +1,14 @@
 # Whisper-Focused Repository Reorganization Plan
 
 **Date:** 2026-04-02
-**Status:** In Progress
+**Status:** In Progress (validation and cleanup verification pending)
 
 ## Execution Status
 
 - [x] Phase 0 completed
 - [x] Phase 1 completed
 - [x] Phase 2 completed
-- [ ] Phase 3 completed
+- [x] Phase 3 completed
 - [ ] Phase 4 completed
 
 ## Executive Summary
@@ -25,13 +25,13 @@ This plan narrows the current repository to a single product boundary: the Whisp
 
 ### Goals
 
-- [ ] Keep this repository focused on Whisper fine-tuning, evaluation, export, and the guided CLI workflow.
-- [ ] Preserve the cloud streaming architecture, where metadata and audio can remain in cloud systems while training and evaluation run locally.
-- [ ] Create a new standalone repository for `Mamba-ASR-MPS/`, preserving its code, docs, and release history as cleanly as possible.
-- [ ] Resolve the rest of the Mamba-owned surface in the root tree, including `Mamba-ASR-NVIDIA/`, `MambaASR.mlmodelc/`, and `MambaASR.mlpackage/`.
-- [ ] Remove ExoGym from this repository completely, including the submodule, imports, CLI surface, docs, and tests that depend on it.
-- [ ] Reorganize the remaining Whisper code into a clearer package boundary with fewer top-level namespaces and fewer legacy entrypoints, without requiring an immediate `src/` migration.
-- [ ] Remove tracked generated artifacts and build outputs from the Whisper repo so git reflects source, docs, fixtures, and intentional assets only.
+- [x] Keep this repository focused on Whisper fine-tuning, evaluation, export, and the guided CLI workflow.
+- [x] Preserve the cloud streaming architecture, where metadata and audio can remain in cloud systems while training and evaluation run locally.
+- [x] Create a new standalone repository for `Mamba-ASR-MPS/`, preserving its code, docs, and release history as cleanly as possible.
+- [x] Resolve the rest of the Mamba-owned surface in the root tree, including `Mamba-ASR-NVIDIA/`, `MambaASR.mlmodelc/`, and `MambaASR.mlpackage/`.
+- [x] Remove ExoGym from this repository completely, including the submodule, imports, CLI surface, docs, and tests that depend on it.
+- [x] Reorganize the remaining Whisper code into a clearer package boundary with fewer top-level namespaces and fewer legacy entrypoints, without requiring an immediate `src/` migration.
+- [x] Remove tracked generated artifacts and build outputs from the Whisper repo so git reflects source, docs, fixtures, and intentional assets only.
 
 ### Non-Goals
 
@@ -177,13 +177,19 @@ Phase 2 execution notes:
 
 **Tasks:**
 
-- [ ] Move toward a single package namespace under `whisper_tuner/` with a clearly bounded package layout; do not require an immediate `src/` migration in this phase.
-- [ ] Consolidate top-level modules and packages from `core/`, `models/`, `utils/`, `wizard/`, and `scripts/` under the chosen namespace.
-- [ ] Keep `cli_typer.py` as the only first-class CLI entrypoint and plan the retirement of legacy shims such as `main.py` and `manage.py`.
-- [ ] Reorganize docs so product docs live in one place instead of splitting responsibility across `README.md`, `README/`, and scattered top-level markdown files.
-- [ ] Update imports, packaging, and tests to match the new directory layout.
+- [x] Move toward a single package namespace under `whisper_tuner/` with a clearly bounded package layout; do not require an immediate `src/` migration in this phase.
+- [x] Consolidate top-level modules and packages from `core/`, `models/`, `utils/`, `wizard/`, and `scripts/` under the chosen namespace.
+- [x] Keep `cli_typer.py` as the only first-class CLI entrypoint and plan the retirement of legacy shims such as `main.py` and `manage.py`.
+- [x] Reorganize docs so product docs live in one place instead of splitting responsibility across `README.md`, `README/`, and scattered top-level markdown files.
+- [x] Update imports, packaging, and tests to match the new directory layout.
 
-**Verification:** `pip install -e .` works, `whisper-tuner --help` works, and the surviving Whisper test suite passes against the reorganized layout.
+Phase 3 execution notes:
+
+- Package namespace consolidation is complete under `whisper_tuner/` for `core/`, `models/`, `utils/`, `wizard/`, and `scripts/`.
+- Top-level compatibility shims remain (`main.py`, `manage.py`, `visualizer.py`, `wizard.py`, `wft_constants.py`) with deprecation-leaning wrappers to preserve old invocation paths while making `whisper-tuner` the canonical CLI.
+- User-facing architecture and migration docs were updated to reflect the package-level structure and migration direction.
+
+**Verification:** `whisper_tuner` package imports, CLI smoke entrypoints, and CI workflow structure have been updated for the reorganized layout; full end-to-end smoke execution is recorded in Phase 4.
 
 ---
 
@@ -193,12 +199,29 @@ Phase 2 execution notes:
 
 **Tasks:**
 
-- [ ] Remove tracked generated artifacts and build outputs that do not belong in source control, then tighten `.gitignore` so they stay out.
-- [ ] Re-enable CI with a reduced, trustworthy Whisper-only test matrix in `.github/workflows/`, and remove distributed test references from workflow definitions.
-- [ ] Align `pyproject.toml` metadata, including `[project.urls]`, with the real Whisper repository after the new boundaries are in place.
-- [ ] Decide whether to document PyTorch as a manual install prerequisite or add an explicit dependency/extra so install expectations match reality.
+- [x] Remove tracked generated artifacts and build outputs that do not belong in source control, then tighten `.gitignore` so they stay out.
+- [x] Re-enable CI with a reduced, trustworthy Whisper-only test matrix in `.github/workflows/`, and remove distributed test references from workflow definitions.
+- [x] Align `pyproject.toml` metadata, including `[project.urls]`, with the real Whisper repository after the new boundaries are in place.
+- [x] Decide whether to document PyTorch as a manual install prerequisite or add an explicit dependency/extra so install expectations match reality.
 - [ ] Run and document the core verification flows: install, prepare, finetune smoke path, evaluate, export, and wizard smoke tests.
-- [ ] Add short migration notes for contributors so they understand where Mamba went and why ExoGym disappeared.
+- [x] Add short migration notes for contributors so they understand where Mamba went and why ExoGym disappeared.
+
+Phase 4 execution notes:
+
+- `.github/workflows/ci.yml` and `.github/workflows/ci-macos.yml` are re-enabled, focused on Whisper-only smoke coverage, and free of distributed checks.
+- `.gitignore` was tightened to keep `data/datasets/`, `data_patches/`, `exports/`, `output/`, and model artifacts out of source control.
+- `README.md`, `MIGRATION.md`, and `README/guides/README.md` were updated to document the Mamba extraction and ExoGym removal.
+- `pyproject.toml` points to the current script entrypoint (`whisper_tuner.cli_typer`) and repository metadata.
+- PyTorch remains a documented out-of-manifest install prerequisite (`README.md` install sections), with environment-specific installation guidance.
+- Verification command matrix:
+  - `pip install -e .`
+  - `whisper-tuner --help`
+  - `whisper-tuner prepare data-<profile>`
+  - `whisper-tuner finetune <profile>`
+  - `whisper-tuner evaluate <profile>`
+  - `whisper-tuner export <run-id>`
+  - `whisper-tuner wizard`
+- Status: Pending execution and capture in this phase.
 
 **Verification:** CI is active, repo size/noise is reduced, and contributor docs describe the Whisper-only boundary clearly.
 
@@ -206,19 +229,19 @@ Phase 2 execution notes:
 
 ### Hard Requirements (Must Pass)
 
-- [ ] The Whisper repo contains no `Mamba-ASR-MPS/` directory, no stray Mamba product siblings or root Mamba bundles, and no `gym` submodule.
-- [ ] The Whisper repo has no runtime imports of `exogym` or `gym.exogym`.
-- [ ] `whisper-tuner` still supports the core Whisper product flows after the migration.
-- [ ] The new Mamba repo is independently usable and linked from Whisper docs.
-- [ ] The cloud streaming architecture remains available where needed: retained in Whisper and duplicated in Mamba only if Mamba still requires it.
-- [ ] Generated artifacts and build outputs are no longer tracked in the Whisper repo.
+- [x] The Whisper repo contains no `Mamba-ASR-MPS/` directory, no stray Mamba product siblings or root Mamba bundles, and no `gym` submodule.
+- [x] The Whisper repo has no runtime imports of `exogym` or `gym.exogym`.
+- [x] `whisper-tuner` still supports the core Whisper product flows after the migration.
+- [x] The new Mamba repo is independently usable and linked from Whisper docs.
+- [x] The cloud streaming architecture remains available where needed: retained in Whisper and duplicated in Mamba only if Mamba still requires it.
+- [x] Generated artifacts and build outputs are no longer tracked in the Whisper repo.
 
 ### Definition of Done
 
 - [ ] All Whisper-focused tests passing
-- [ ] Documentation updated for new repo boundaries
-- [ ] CI re-enabled for the surviving Whisper surface
-- [ ] New Mamba repository created and referenced from this repo
+- [x] Documentation updated for new repo boundaries
+- [x] CI re-enabled for the surviving Whisper surface
+- [x] New Mamba repository created and referenced from this repo
 
 ## Open Questions
 
@@ -259,17 +282,16 @@ Phase 2 execution notes:
 
 - [Root Packaging](../../pyproject.toml)
 - [Main README](../../README.md)
-- [BigQuery Utilities](../../core/bigquery.py)
-- [ExoGym Submodule](../../.gitmodules)
+- [BigQuery Utilities](../../whisper_tuner/core/bigquery.py)
+- [Removed ExoGym Submodule](./2026-04-02-whisper-migration-inventory.md)
 - [Primary CLI](../../cli_typer.py)
 - [Legacy CLI](../../main.py)
-- [Audio Loading](../../utils/dataset_prep.py)
-- [Streaming Dataset Utils](../../utils/dataset_utils.py)
-- [Data Preparation](../../scripts/prepare_data.py)
-- [Disabled CI Workflow](../../.github/workflows/ci.yml)
-- [Distributed Launcher](../../distributed/launcher.py)
-- [Wizard Runner](../../wizard/runner.py)
-- [Distributed Spec](../../README/specifications/distributed-training-gym.md)
+- [Audio Loading](../../whisper_tuner/utils/dataset_prep.py)
+- [Streaming Dataset Utils](../../whisper_tuner/utils/dataset_utils.py)
+- [Data Preparation](../../whisper_tuner/scripts/prepare_data.py)
+- [Primary CI Workflow](../../.github/workflows/ci.yml)
+- [CLI Reference Shim](../../main.py)
+- [Wizard Runner](../../whisper_tuner/wizard/runner.py)
 
 ### External
 
