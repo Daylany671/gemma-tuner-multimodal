@@ -52,8 +52,8 @@ python -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 
 # OR using conda
-conda create -n whisper-tuner python=3.10
-conda activate whisper-tuner
+conda create -n gemma-macos-tuner python=3.10
+conda activate gemma-macos-tuner
 ```
 
 ### 1.3 Install Dependencies
@@ -67,7 +67,7 @@ pip install -r requirements.txt
 Run the system check to ensure everything is configured correctly:
 
 ```bash
-whisper-tuner system-check
+gemma-macos-tuner system-check
 ```
 
 You should see output similar to:
@@ -86,7 +86,7 @@ You should see output similar to:
 The wizard provides a Steve Jobs-inspired interface that guides you through the entire process with smart defaults for everything.
 
 ```bash
-whisper-tuner wizard
+gemma-macos-tuner wizard
 ```
 
 You'll see a welcome screen:
@@ -357,13 +357,13 @@ id,audio_path,text
 - **Solution**: Use LoRA instead of standard fine-tuning, or choose a smaller model
 
 **Issue**: Training is very slow
-- **Solution**: Ensure you're using GPU (MPS/CUDA), not CPU. Check with `whisper-tuner system-check`
+- **Solution**: Ensure you're using GPU (MPS/CUDA), not CPU. Check with `gemma-macos-tuner system-check`
 
 **Issue**: Model not improving (loss not decreasing)
 - **Solution**: Try a higher learning rate (5e-5 or 1e-4) or more training epochs
 
 **Issue**: Can't find the wizard
-- **Solution**: Run `whisper-tuner wizard`. If you need the backward-compatible shim, run `python wizard.py` from the repository root.
+- **Solution**: Run `gemma-macos-tuner wizard`. If you need the backward-compatible shim, run `python wizard.py` from the repository root.
 
 ### Getting Help
 

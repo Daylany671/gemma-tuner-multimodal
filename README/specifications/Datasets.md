@@ -43,7 +43,7 @@ Before setting up Granary, ensure you have:
 The fastest way to set up Granary is through the interactive wizard:
 
 ```bash
-whisper-tuner wizard
+gemma-macos-tuner wizard
 ```
 
 1. Choose **"Setup NVIDIA Granary Dataset"** from the dataset options
@@ -128,7 +128,7 @@ audio_source_librilight = /path/to/downloaded/librilight/audio
 Run the Granary preparation script to validate audio files and create training manifest:
 
 ```bash
-whisper-tuner prepare-granary granary-en
+gemma-macos-tuner prepare-granary granary-en
 ```
 
 **What the preparation script does:**
@@ -174,7 +174,7 @@ learning_rate = 1e-5
 Then run training:
 
 ```bash
-whisper-tuner finetune whisper-base-granary
+gemma-macos-tuner finetune whisper-base-granary
 ```
 
 ### 🔧 Advanced Configuration
@@ -368,7 +368,7 @@ audio_source_librilight = /path/to/librilight
 
 ```bash
 export LOG_JSON=0  # Disable JSON logging for readability
-whisper-tuner prepare-granary granary-en --log_file granary_debug.log
+gemma-macos-tuner prepare-granary granary-en --log_file granary_debug.log
 ```
 
 **Validate individual corpus paths:**

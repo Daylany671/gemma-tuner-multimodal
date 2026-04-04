@@ -292,13 +292,13 @@ Post-training evaluation provides detailed analysis and cross-dataset testing.
 
 ```bash
 # Evaluate trained model on its validation set
-whisper-tuner evaluate <profile_name>
+gemma-macos-tuner evaluate <profile_name>
 
 # Evaluate on different dataset
-whisper-tuner evaluate <profile_name> --dataset <other_dataset>
+gemma-macos-tuner evaluate <profile_name> --dataset <other_dataset>
 
 # Direct model evaluation
-whisper-tuner evaluate <model_path> --dataset <dataset_name>
+gemma-macos-tuner evaluate <model_path> --dataset <dataset_name>
 ```
 
 #### Evaluation Process
@@ -500,7 +500,7 @@ When tests fail:
 
 2. **Verify Environment**:
    ```bash
-   whisper-tuner system-check
+   gemma-macos-tuner system-check
    ```
 
 3. **Run Minimal Test**:
@@ -530,7 +530,7 @@ Maintain performance baselines for regression detection:
 ### Pre-Training Checklist
 - [ ] Run smoke tests: `python tests/test_smoke.py`
 - [ ] Verify device: `python tests/test_mps.py` (on Mac)
-- [ ] Check dataset: `whisper-tuner prepare <dataset>`
+- [ ] Check dataset: `gemma-macos-tuner prepare <dataset>`
 - [ ] Validate config: Review `config.ini` profile
 - [ ] Test single batch: Run with `--max_samples 10`
 
@@ -582,7 +582,7 @@ ModuleNotFoundError: No module named 'main'
 FileNotFoundError: validation.csv not found
 ```
 **Solution**:
-- Run data preparation: `whisper-tuner prepare <dataset>`
+- Run data preparation: `gemma-macos-tuner prepare <dataset>`
 - Check data/datasets/<dataset>/ directory
 - Verify train/validation split was created
 

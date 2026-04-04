@@ -25,43 +25,43 @@ The Whisper Fine-Tuner is a comprehensive training framework designed to fine-tu
 ```mermaid
 graph TB
     %% User Entry Points
-    User[User] --> Wizard[whisper-tuner wizard<br/>Interactive CLI]
-    User --> CLI[whisper-tuner<br/>Command Line]
+    User[User] --> Wizard[gemma-macos-tuner wizard<br/>Interactive CLI]
+    User --> CLI[gemma-macos-tuner<br/>Command Line]
     
     %% Configuration Layer
     Wizard --> |generates| TempConfig[Temporary Config]
     TempConfig --> |subprocess| CLI
-    CLI --> ConfigLoader[whisper_tuner/core/config.py<br/>Config Loader]
+    CLI --> ConfigLoader[gemma_tuner/core/config.py<br/>Config Loader]
     ConfigINI[config.ini] --> ConfigLoader
     
     %% Device Detection
-    CLI --> DeviceDetect[whisper_tuner/utils/device.py<br/>Device Detection]
+    CLI --> DeviceDetect[gemma_tuner/utils/device.py<br/>Device Detection]
     DeviceDetect --> |MPS/CUDA/CPU| DeviceConfig[Device Config]
     
     %% Run Management
-    CLI --> RunManager[whisper_tuner/core/runs.py<br/>Run Manager]
+    CLI --> RunManager[gemma_tuner/core/runs.py<br/>Run Manager]
     RunManager --> |creates| RunDir[output/{run_id}/]
     RunManager --> |tracks| Metadata[metadata.json]
     
     %% Operation Dispatch
-    ConfigLoader --> |merged config| OpDispatch[whisper_tuner/core/ops.py<br/>Operation Dispatch]
+    ConfigLoader --> |merged config| OpDispatch[gemma_tuner/core/ops.py<br/>Operation Dispatch]
     DeviceConfig --> OpDispatch
     
     %% Operations
-    OpDispatch --> |lazy load| PrepareOp[whisper_tuner/scripts/prepare_data.py]
-    OpDispatch --> |lazy load| FinetuneOp[whisper_tuner/scripts/finetune.py]
-    OpDispatch --> |lazy load| EvaluateOp[whisper_tuner/scripts/evaluate.py]
-    OpDispatch --> |lazy load| ExportOp[whisper_tuner/scripts/export.py]
-    OpDispatch --> |lazy load| BlacklistOp[whisper_tuner/scripts/blacklist.py]
+    OpDispatch --> |lazy load| PrepareOp[gemma_tuner/scripts/prepare_data.py]
+    OpDispatch --> |lazy load| FinetuneOp[gemma_tuner/scripts/finetune.py]
+    OpDispatch --> |lazy load| EvaluateOp[gemma_tuner/scripts/evaluate.py]
+    OpDispatch --> |lazy load| ExportOp[gemma_tuner/scripts/export.py]
+    OpDispatch --> |lazy load| BlacklistOp[gemma_tuner/scripts/blacklist.py]
     
     %% Specialized Utilities
-    CLI --> |validation| GemmaPreflight[whisper_tuner/scripts/gemma_preflight.py<br/>Environment Validation]
-    CLI --> |profiling| GemmaProfiler[whisper_tuner/scripts/gemma_profiler.py<br/>Performance Analysis]
+    CLI --> |validation| GemmaPreflight[gemma_tuner/scripts/gemma_preflight.py<br/>Environment Validation]
+    CLI --> |profiling| GemmaProfiler[gemma_tuner/scripts/gemma_profiler.py<br/>Performance Analysis]
     %% Model Implementations
-    FinetuneOp --> |routes to| WhisperModel[whisper_tuner/models/whisper/finetune.py<br/>Standard Fine-Tuning]
-    FinetuneOp --> |routes to| LoRAModel[whisper_tuner/models/whisper_lora/finetune.py<br/>LoRA Fine-Tuning]
-    FinetuneOp --> |routes to| DistilModel[whisper_tuner/models/distil_whisper/finetune.py<br/>Knowledge Distillation]
-    FinetuneOp --> |routes to| GemmaModel[whisper_tuner/models/gemma/finetune.py<br/>Gemma 3n Multimodal]
+    FinetuneOp --> |routes to| WhisperModel[gemma_tuner/models/whisper/finetune.py<br/>Standard Fine-Tuning]
+    FinetuneOp --> |routes to| LoRAModel[gemma_tuner/models/whisper_lora/finetune.py<br/>LoRA Fine-Tuning]
+    FinetuneOp --> |routes to| DistilModel[gemma_tuner/models/distil_whisper/finetune.py<br/>Knowledge Distillation]
+    FinetuneOp --> |routes to| GemmaModel[gemma_tuner/models/gemma/finetune.py<br/>Gemma 3n Multimodal]
     
     %% Data Flow
     PrepareOp --> DataDir[data/datasets/]
@@ -101,12 +101,12 @@ graph TB
 
 The system provides two user interfaces: a direct CLI for experienced users and an interactive wizard for guided setup.
 
-### Command Line Interface (`whisper-tuner`)
+### Command Line Interface (`gemma-macos-tuner`)
 
 The CLI serves as the primary entry point, implementing a hierarchical command structure:
 
 ```
-whisper-tuner <operation> <profile_or_target> [options]
+gemma-macos-tuner <operation> <profile_or_target> [options]
 ```
 
 **Command Routing Architecture:**
@@ -130,13 +130,13 @@ whisper-tuner <operation> <profile_or_target> [options]
 
 **Key Design Decision:** The CLI handles all orchestration logic, keeping operation implementations focused on their core functionality.
 
-### Interactive Wizard (`whisper-tuner wizard`)
+### Interactive Wizard (`gemma-macos-tuner wizard`)
 
 The wizard provides a Steve Jobs-inspired progressive disclosure interface:
 
 **Wizard Flow:**
 
-1. **Hardware Detection** (uses `whisper_tuner/utils/device.py`)
+1. **Hardware Detection** (uses `gemma_tuner/utils/device.py`)
    - Detects available compute device
    - Estimates training time based on hardware
    - Suggests optimal batch sizes
@@ -159,7 +159,7 @@ The wizard provides a Steve Jobs-inspired progressive disclosure interface:
 
 **Why Subprocess?** The wizard generates a temporary configuration and executes the internal training bridge as a subprocess to maintain clean separation between UI and execution logic. This allows the wizard to be completely optional while leveraging all existing infrastructure.
 
-## 2. Configuration System (`whisper_tuner/core/config.py`)
+## 2. Configuration System (`gemma_tuner/core/config.py`)
 
 The configuration system implements a sophisticated hierarchical inheritance model that balances flexibility with simplicity.
 
@@ -216,7 +216,7 @@ The `_validate_profile_config()` function performs three validation phases:
 
 **Why This Complexity?** The hierarchical system enables users to define common settings once (in group or model sections) while allowing fine-grained overrides for specific experiments. This dramatically reduces configuration duplication.
 
-## 3. Run Management System (`whisper_tuner/core/runs.py`)
+## 3. Run Management System (`gemma_tuner/core/runs.py`)
 
 The run management system provides comprehensive tracking and organization for all training and evaluation operations.
 
@@ -287,7 +287,7 @@ Each run maintains comprehensive metadata in JSON format:
 
 **Key Innovation:** The dual completion tracking (marker file + metadata status) ensures backward compatibility while providing rich status information.
 
-## 4. Device Management System (`whisper_tuner/utils/device.py`)
+## 4. Device Management System (`gemma_tuner/utils/device.py`)
 
 The device management system handles the critical differences between Apple Silicon, NVIDIA, and CPU platforms.
 
@@ -360,7 +360,7 @@ elif device.type == "cpu":
    - CUDA: ~2000+ operations, comprehensive coverage
    - CPU: Universal support, but slow
 
-## 5. Operation Dispatch System (`whisper_tuner/core/ops.py`)
+## 5. Operation Dispatch System (`gemma_tuner/core/ops.py`)
 
 The operation dispatch system implements a lazy-loading pattern that dramatically reduces startup time.
 
@@ -369,7 +369,7 @@ The operation dispatch system implements a lazy-loading pattern that dramaticall
 ```python
 def finetune(profile_config: Dict, output_dir: str):
     # Import only when operation is called
-    from whisper_tuner.scripts.finetune import main as finetune_main
+    from gemma_tuner.scripts.finetune import main as finetune_main
     finetune_main(profile_config, output_dir)
 ```
 
@@ -400,13 +400,13 @@ def finetune(profile_config: Dict, output_dir: str):
 The finetune operation includes intelligent model routing:
 
 ```python
-# In whisper_tuner/scripts/finetune.py
+# In gemma_tuner/scripts/finetune.py
 if has_lora_config(profile_config):
-    from whisper_tuner.models.whisper_lora.finetune import main
+    from gemma_tuner.models.whisper_lora.finetune import main
 elif has_teacher_model(profile_config):
-    from whisper_tuner.models.distil_whisper.finetune import main
+    from gemma_tuner.models.distil_whisper.finetune import main
 else:
-    from whisper_tuner.models.whisper.finetune import main
+    from gemma_tuner.models.whisper.finetune import main
 
 main(profile_config, output_dir)
 ```
@@ -466,7 +466,7 @@ Each operation implements comprehensive error handling:
 
 The system includes several specialized utilities that extend core functionality for specific use cases:
 
-#### Environment Validation (`whisper_tuner/scripts/gemma_preflight.py`)
+#### Environment Validation (`gemma_tuner/scripts/gemma_preflight.py`)
 **Purpose**: Comprehensive environment validation for Gemma 3n training on Apple Silicon.
 
 **Key Features**:
@@ -478,7 +478,7 @@ The system includes several specialized utilities that extend core functionality
 
 **Integration**: Called before Gemma training workflows to prevent environment-related failures.
 
-#### Performance Profiling (`whisper_tuner/scripts/gemma_profiler.py`)
+#### Performance Profiling (`gemma_tuner/scripts/gemma_profiler.py`)
 **Purpose**: Systematic performance analysis and resource usage measurement for Gemma 3n models.
 
 **Key Features**:
@@ -527,12 +527,12 @@ The system implements comprehensive AI-first documentation standards designed fo
 
 The following components have been enhanced with AI-first documentation:
 
-- **whisper_tuner/scripts/finetune.py**: Enhanced model routing and error handling patterns
-- **whisper_tuner/scripts/gemma_generate.py**: Detailed inference pipeline and integration examples
-- **whisper_tuner/utils/gemma_dataset_prep.py**: Comprehensive dataset preparation workflow documentation
-- **whisper_tuner/scripts/gemma_preflight.py**: Environment validation logic with remediation guidance
-- **whisper_tuner/scripts/gemma_profiler.py**: Performance profiling methodology and integration points
-- **whisper_tuner/wizard/**: Enhanced user experience flow documentation
+- **gemma_tuner/scripts/finetune.py**: Enhanced model routing and error handling patterns
+- **gemma_tuner/scripts/gemma_generate.py**: Detailed inference pipeline and integration examples
+- **gemma_tuner/utils/gemma_dataset_prep.py**: Comprehensive dataset preparation workflow documentation
+- **gemma_tuner/scripts/gemma_preflight.py**: Environment validation logic with remediation guidance
+- **gemma_tuner/scripts/gemma_profiler.py**: Performance profiling methodology and integration points
+- **gemma_tuner/wizard/**: Enhanced user experience flow documentation
 - **utils/dataset_prep.py**: Core dataset utilities with cross-file integration details
 
 #### Benefits of AI-First Documentation

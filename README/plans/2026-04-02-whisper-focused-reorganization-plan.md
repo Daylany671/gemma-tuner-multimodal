@@ -48,7 +48,7 @@ This plan narrows the current repository to a single product boundary: the Whisp
 ## Ground Truth Contracts (Do Not Violate)
 
 - **Whisper installability:** The root package defined in `pyproject.toml` must remain installable and runnable as the Whisper product after the migration.
-- **Primary CLI continuity:** `whisper-tuner` remains the canonical entrypoint, even if legacy shims are removed later.
+- **Primary CLI continuity:** `gemma-macos-tuner` remains the canonical entrypoint, even if legacy shims are removed later.
 - **Run/output compatibility:** Existing Whisper run directories and metadata contracts remain readable by the surviving management and export tools.
 - **Cloud-local architecture continuity:** The ability to keep data in cloud storage or BigQuery while compute runs locally must either stay in the Whisper repo or be intentionally duplicated into the new Mamba repo if Mamba still depends on that workflow.
 - **No hidden nested projects:** After the migration, the Whisper repo must not contain another product repo or a git submodule masquerading as first-party code.
@@ -96,7 +96,7 @@ The migration order is intentional:
 Two implementation choices are fixed up front:
 
 1. Use `git subtree split` as the default Mamba extraction method.
-2. Consolidate under a top-level `whisper_tuner/` package first; defer any `src/` layout migration to a later, separate decision.
+2. Consolidate under a top-level `gemma_tuner/` package first; defer any `src/` layout migration to a later, separate decision.
 
 ## Implementation Phases
 
@@ -177,7 +177,7 @@ Phase 2 execution notes:
 
 **Tasks:**
 
-- [x] Move toward a single package namespace under `whisper_tuner/` with a clearly bounded package layout; do not require an immediate `src/` migration in this phase.
+- [x] Move toward a single package namespace under `gemma_tuner/` with a clearly bounded package layout; do not require an immediate `src/` migration in this phase.
 - [x] Consolidate top-level modules and packages from `core/`, `models/`, `utils/`, `wizard/`, and `scripts/` under the chosen namespace.
 - [x] Keep `cli_typer.py` as the only first-class CLI entrypoint and plan the retirement of legacy shims such as `main.py` and `manage.py`.
 - [x] Reorganize docs so product docs live in one place instead of splitting responsibility across `README.md`, `README/`, and scattered top-level markdown files.
@@ -185,11 +185,11 @@ Phase 2 execution notes:
 
 Phase 3 execution notes:
 
-- Package namespace consolidation is complete under `whisper_tuner/` for `core/`, `models/`, `utils/`, `wizard/`, and `scripts/`.
-- Top-level compatibility shims remain (`main.py`, `manage.py`, `visualizer.py`, `wizard.py`, `wft_constants.py`) with deprecation-leaning wrappers to preserve old invocation paths while making `whisper-tuner` the canonical CLI.
+- Package namespace consolidation is complete under `gemma_tuner/` for `core/`, `models/`, `utils/`, `wizard/`, and `scripts/`.
+- Top-level compatibility shims remain (`main.py`, `manage.py`, `visualizer.py`, `wizard.py`, `wft_constants.py`) with deprecation-leaning wrappers to preserve old invocation paths while making `gemma-macos-tuner` the canonical CLI.
 - User-facing architecture and migration docs were updated to reflect the package-level structure and migration direction.
 
-**Verification:** `whisper_tuner` package imports, CLI smoke entrypoints, and CI workflow structure have been updated for the reorganized layout; full end-to-end smoke execution is recorded in Phase 4.
+**Verification:** `gemma_tuner` package imports, CLI smoke entrypoints, and CI workflow structure have been updated for the reorganized layout; full end-to-end smoke execution is recorded in Phase 4.
 
 ---
 
@@ -211,18 +211,18 @@ Phase 4 execution notes:
 - `.github/workflows/ci.yml` and `.github/workflows/ci-macos.yml` are re-enabled, focused on Whisper-only smoke coverage, and free of distributed checks.
 - `.gitignore` was tightened to keep `data/datasets/`, `data_patches/`, `exports/`, `output/`, and model artifacts out of source control.
 - `README.md`, `MIGRATION.md`, and `README/guides/README.md` were updated to document the Mamba extraction and ExoGym removal.
-- A final documentation reconciliation pass aligned remaining README and specification references to the `whisper_tuner/` package layout and the canonical `whisper-tuner` CLI, while preserving explicit notes where legacy shims remain intentionally supported.
-- `pyproject.toml` points to the current script entrypoint (`whisper_tuner.cli_typer`) and repository metadata.
+- A final documentation reconciliation pass aligned remaining README and specification references to the `gemma_tuner/` package layout and the canonical `gemma-macos-tuner` CLI, while preserving explicit notes where legacy shims remain intentionally supported.
+- `pyproject.toml` points to the current script entrypoint (`gemma_tuner.cli_typer`) and repository metadata.
 - PyTorch remains a documented out-of-manifest install prerequisite (`README.md` install sections), with environment-specific installation guidance.
 - Verification command matrix:
   - `python3.10 -m pip install -e .`
   - `python3.10 -m pip install -e '.[dev]'`
-  - `whisper-tuner --help`
-  - `whisper-tuner prepare --help`
-  - `whisper-tuner finetune --help`
-  - `whisper-tuner evaluate --help`
-  - `whisper-tuner export --help`
-  - `whisper-tuner wizard --help`
+  - `gemma-macos-tuner --help`
+  - `gemma-macos-tuner prepare --help`
+  - `gemma-macos-tuner finetune --help`
+  - `gemma-macos-tuner evaluate --help`
+  - `gemma-macos-tuner export --help`
+  - `gemma-macos-tuner wizard --help`
   - `python3.10 -m pytest -q tests` (`56 passed, 2 skipped`)
 - Note: Heavy runtime variants (`prepare`/`finetune`/`evaluate`/`export` using real profiles) were intentionally kept at help-mode in this execution window and were not executed end-to-end due compute and environment constraints.
 - Status: Executed and captured in this phase.
@@ -235,7 +235,7 @@ Phase 4 execution notes:
 
 - [x] The Whisper repo contains no `Mamba-ASR-MPS/` directory, no stray Mamba product siblings or root Mamba bundles, and no `gym` submodule.
 - [x] The Whisper repo has no runtime imports of `exogym` or `gym.exogym`.
-- [x] `whisper-tuner` still supports the core Whisper product flows after the migration.
+- [x] `gemma-macos-tuner` still supports the core Whisper product flows after the migration.
 - [x] The new Mamba repo is independently usable and linked from Whisper docs.
 - [x] The cloud streaming architecture remains available where needed: retained in Whisper and duplicated in Mamba only if Mamba still requires it.
 - [x] Generated artifacts and build outputs are no longer tracked in the Whisper repo.
@@ -267,7 +267,7 @@ Phase 4 execution notes:
 - **A:** Use `git subtree split` first. It is simpler and sufficient for this boundary split.
 
 - **Q:** Should this plan require an immediate `src/` layout migration?
-- **A:** No. Consolidate under `whisper_tuner/` first and defer `src/` to a later decision if still useful.
+- **A:** No. Consolidate under `gemma_tuner/` first and defer `src/` to a later decision if still useful.
 
 - **Q:** Does Gemma support still belong in this repo after the Whisper-only boundary is enforced?
 - **A:** Yes.
@@ -277,7 +277,7 @@ Phase 4 execution notes:
 
 ### Unresolved
 
-- **Q:** Should the package consolidation under `whisper_tuner/` happen in the same PR series as the repo split, or only after Mamba extraction and ExoGym removal land?
+- **Q:** Should the package consolidation under `gemma_tuner/` happen in the same PR series as the repo split, or only after Mamba extraction and ExoGym removal land?
 - **A:** after Mamba extraction and ExoGym removal
 
 ## References
@@ -286,16 +286,16 @@ Phase 4 execution notes:
 
 - [Root Packaging](../../pyproject.toml)
 - [Main README](../../README.md)
-- [BigQuery Utilities](../../whisper_tuner/core/bigquery.py)
+- [BigQuery Utilities](../../gemma_tuner/core/bigquery.py)
 - [Removed ExoGym Submodule](./2026-04-02-whisper-migration-inventory.md)
 - [Primary CLI](../../cli_typer.py)
 - [Legacy CLI](../../main.py)
-- [Audio Loading](../../whisper_tuner/utils/dataset_prep.py)
-- [Streaming Dataset Utils](../../whisper_tuner/utils/dataset_utils.py)
-- [Data Preparation](../../whisper_tuner/scripts/prepare_data.py)
+- [Audio Loading](../../gemma_tuner/utils/dataset_prep.py)
+- [Streaming Dataset Utils](../../gemma_tuner/utils/dataset_utils.py)
+- [Data Preparation](../../gemma_tuner/scripts/prepare_data.py)
 - [Primary CI Workflow](../../.github/workflows/ci.yml)
 - [CLI Reference Shim](../../main.py)
-- [Wizard Runner](../../whisper_tuner/wizard/runner.py)
+- [Wizard Runner](../../gemma_tuner/wizard/runner.py)
 
 ### External
 

@@ -63,7 +63,7 @@ This inventory freezes the repository boundaries before any code or history move
 
 ## Whisper Workflows That Must Survive
 
-- Canonical CLI: `cli_typer.py` and the `whisper-tuner` entrypoint
+- Canonical CLI: `cli_typer.py` and the `gemma-macos-tuner` entrypoint
 - Training and evaluation core: `core/`, `models/`, `utils/`, `scripts/`
 - Guided setup: `wizard/`
 - Data quality and export tooling: blacklist, evaluation, GGUF/Core ML export, visualizer

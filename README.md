@@ -1,29 +1,25 @@
-# Whisper Fine-Tuner for macOS
+# Gemma macOS Tuner
 
-A comprehensive framework for fine-tuning OpenAI's Whisper models with native Apple Silicon support via Metal Performance Shaders (MPS).
+A fine-tuning framework for Google's Gemma models with native Apple Silicon support via Metal Performance Shaders (MPS).
 
 ## Features
 
-- 🚀 **Native Apple Silicon Support**: Optimized for M1/M2/M3 chips using MPS
+- 🚀 **Native Apple Silicon Support**: Optimized for M1/M2/M3/M4 chips using MPS
 - 🔄 **Cross-Platform**: Also supports NVIDIA GPUs (CUDA) and CPU
-- 🎯 **Multiple Training Methods**: Standard fine-tuning, Knowledge Distillation, and LoRA (Parameter-Efficient Fine-Tuning)
-- ⚡ **LoRA Support**: Memory-efficient training with 95%+ parameter reduction and 10-50MB checkpoints
-- 🧠 **Knowledge Distillation**: Create smaller, faster models via teacher-student training
-- 📊 **Comprehensive Evaluation**: WER/CER metrics with detailed analysis
+- ⚡ **LoRA Fine-Tuning**: Memory-efficient training with 95%+ parameter reduction
+- 💎 **Gemma Multimodal**: Fine-tune Gemma's audio + text capabilities via HF Transformers + PEFT
+- 📊 **Comprehensive Evaluation**: Metrics with detailed analysis
 - 🔍 **Outlier Detection**: Automatic blacklisting of problematic samples
 - 🏷️ **Pseudo-Labeling**: Generate labels for unlabeled data
 - 📦 **Export**: Export trained checkpoints to portable HF/SafeTensors directories
-- 🧳 **One-Click GGUF Export (whisper.cpp)**: Automatically converts trained runs to GGUF after training and prints a clickable link; LoRA adapters are merged before conversion
-- 🧠 **Hybrid CoreML Export (ANE encoder)**: Automatically exports the encoder to CoreML FP16 for ANE while keeping the decoder in GGUF for whisper.cpp; works for Standard, LoRA (merged), and Distillation
 - ☁️ **Cloud Storage Streaming**: Train on massive datasets without local storage
-- 📊 **NVIDIA Granary Dataset**: Built-in support for the world's largest public speech dataset (~643k hours, 25 languages) with optimized preparation and validation
-- 💎 **Gemma 3n (Google) Audio LoRA on MPS**: Fine-tune Gemma 3n's audio capability via HF Transformers + PEFT on Apple Silicon; fully integrated into the wizard
+- 🧙 **Interactive Wizard**: Step-by-step guided setup for training configuration
 
-**Documentation:** Field guides (MPS, Core ML, Whisper export) live in [`README/guides/README.md`](README/guides/README.md). Product specs live in [`README/specifications/`](README/specifications/).
+**Documentation:** Field guides live in [`README/guides/README.md`](README/guides/README.md). Product specs live in [`README/specifications/`](README/specifications/).
 
 ## Architecture Overview
 
-The Whisper Fine-Tuner framework is built on a modular, platform-agnostic architecture that seamlessly adapts to Apple Silicon, NVIDIA CUDA, and CPU environments while providing sophisticated data quality management and multiple training paradigms.
+The Gemma macOS Tuner is built on a modular, platform-agnostic architecture that seamlessly adapts to Apple Silicon, NVIDIA CUDA, and CPU environments while providing sophisticated data quality management.
 
 ### Design Principles
 
@@ -37,9 +33,9 @@ The Whisper Fine-Tuner framework is built on a modular, platform-agnostic archit
 
 #### 1. Training Orchestration System
 
-**Canonical CLI** (`whisper_tuner/cli_typer.py`, exposed as `whisper-tuner`):
+**Canonical CLI** (`gemma_tuner/cli_typer.py`, exposed as `gemma-macos-tuner`):
 - Prefer Typer-based commands for all workflows; it delegates to the same core modules.
-- `main.py`, `manage.py`, and `cli_typer.py` are compatibility shims. Prefer the `whisper-tuner` CLI. For transitional usage, see the `legacy` command group and the migration guide below.
+- `main.py`, `manage.py`, and `cli_typer.py` are compatibility shims. Prefer the `gemma-macos-tuner` CLI. For transitional usage, see the `legacy` command group and the migration guide below.
 - **Profile-Based Configuration**: Hierarchical configuration system with inheritance (DEFAULT → group → model → dataset → profile)
 - **Run Management**: Sequential run ID generation with metadata tracking and failure recovery
 - **Operation Routing**: Unified CLI for data preparation, training, evaluation, and export operations
@@ -63,7 +59,7 @@ output/
 
 #### 2. Device Management Layer
 
-**Unified Device Abstraction** (`whisper_tuner/utils/device.py`):
+**Unified Device Abstraction** (`gemma_tuner/utils/device.py`):
 - **Platform Detection**: Automatic selection following MPS → CUDA → CPU hierarchy
 - **Memory Management**: Platform-specific strategies for unified (MPS) vs discrete (CUDA) memory
 - **Synchronization**: Device-appropriate synchronization for accurate measurements
@@ -88,20 +84,20 @@ torch.cuda.memory_allocated()
 
 #### 3. Model Training Modules
 
-**Standard Fine-Tuning** (`whisper_tuner/models/whisper/finetune.py`):
+**Standard Fine-Tuning** (`gemma_tuner/models/whisper/finetune.py`):
 - **Full Parameter Updates**: Trains all model parameters for maximum accuracy
 - **HuggingFace Integration**: Leverages Seq2SeqTrainer for stable training
 - **Memory Requirements**: 16-24GB for small models, scales with model size
 - **Use Case**: Maximum performance when resources are available
 
-**LoRA Training** (`whisper_tuner/models/whisper_lora/finetune.py`):
+**LoRA Training** (`gemma_tuner/models/whisper_lora/finetune.py`):
 - **Parameter-Efficient**: Trains only 0.2-3% of parameters via low-rank adapters
 - **Memory Efficient**: 4-8GB VRAM vs 16-24GB for standard training
 - **Adapter Architecture**: Targets attention (q_proj, k_proj, v_proj) and feedforward (fc1, fc2) layers
 - **Checkpoint Size**: 10-50MB adapters vs 1GB+ full models
 - **8-bit Quantization**: Optional INT8 quantization for further memory reduction
 
-**Knowledge Distillation** (`whisper_tuner/models/distil_whisper/finetune.py`):
+**Knowledge Distillation** (`gemma_tuner/models/distil_whisper/finetune.py`):
 - **Teacher-Student Architecture**: Large teacher model guides smaller student training
 - **Dual Loss Function**: α × KL_divergence + (1-α) × cross_entropy
 - **Temperature Scaling**: Smooths probability distributions for better knowledge transfer
@@ -110,7 +106,7 @@ torch.cuda.memory_allocated()
 
 #### 4. Dataset Management System
 
-**Hierarchical Patch System** (`whisper_tuner/utils/dataset_utils.py`):
+**Hierarchical Patch System** (`gemma_tuner/utils/dataset_utils.py`):
 - **Override System**: Manual transcription corrections via CSV patches
 - **Blacklist Management**: Automatic filtering of problematic samples
 - **Protection Lists**: Preserve high-quality ground truth from blacklisting
@@ -134,7 +130,7 @@ data_patches/{source}/
 
 #### 5. Training Visualizer
 
-**Real-Time Visualization** (`whisper_tuner/visualizer.py`):
+**Real-Time Visualization** (`gemma_tuner/visualizer.py`):
 - **Flask + SocketIO Backend**: Streams training metrics to web interface
 - **PyTorch Hook Integration**: Extracts gradients, attention weights, and activations
 - **Offline Frontend Assets**: Vendored Socket.IO, Three.js, Chart.js, and icon assets are served locally
@@ -160,9 +156,9 @@ if profile_config.get("visualize"):
 
 The Wizard is a beautiful, step-by-step CLI that guides you through setting up a fine-tuning run with smart defaults and progressive disclosure.
 
-- **File**: `wizard.py` (compatibility shim over `whisper_tuner.wizard`)
+- **File**: `wizard.py` (compatibility shim over `gemma_tuner.wizard`)
 - **Entrypoints**:
-  - `whisper-tuner wizard` (recommended)
+  - `gemma-macos-tuner wizard` (recommended)
   - `python wizard.py` (legacy compatibility shim)
 
 ##### What the Wizard Does
@@ -183,7 +179,7 @@ The Wizard is a beautiful, step-by-step CLI that guides you through setting up a
 ##### How to Launch
 ```bash
 # Recommended
-whisper-tuner wizard
+gemma-macos-tuner wizard
 
 # Or run the legacy shim directly
 python wizard.py
@@ -235,7 +231,7 @@ python wizard.py
    - Cleans up the temporary file after starting
 
 ##### Under the Hood
-- Device detection: `whisper_tuner.utils.device.get_device()`
+- Device detection: `gemma_tuner.utils.device.get_device()`
 - UI: `rich` + `questionary`
 - Training handoff: internal `python -m main finetune <profile> --config <temp.ini>` bridge launched from the wizard
 - Visualizer (optional): enables `visualize=True` which the training pipeline detects
@@ -395,7 +391,7 @@ Tip: If you need a lockfile, use your preferred tool (e.g., `uv` or `pip-tools`)
 
 ### 4. Verify MPS setup
 ```bash
-whisper-tuner system-check
+gemma-macos-tuner system-check
 
 # Or quick check
 python - << 'PY'
@@ -431,10 +427,10 @@ The preparer auto-detects `gs://` URIs and switches to streaming mode. It also v
 # gs://my-bucket/audio/file2.wav,"Training example",2
 
 # Prepare dataset without downloading
-whisper-tuner prepare your_dataset --no-download
+gemma-macos-tuner prepare your_dataset --no-download
 
 # Train as normal - audio streams automatically (Typer CLI)
-whisper-tuner finetune medium-lora-data3
+gemma-macos-tuner finetune medium-lora-data3
 ```
 
 The system automatically detects GCS paths and streams audio on-demand during training.
@@ -447,14 +443,14 @@ Quickstart:
 
 ```bash
 # 1) Environment preflight & a tiny profiler
-python -m whisper_tuner.scripts.gemma_preflight
-python -m whisper_tuner.scripts.gemma_profiler --model google/gemma-3n-E2B-it
+python -m gemma_tuner.scripts.gemma_preflight
+python -m gemma_tuner.scripts.gemma_profiler --model google/gemma-3n-E2B-it
 
 # 2) Run the wizard → choose Gemma family → LoRA → E2B (⭐ Recommended)
-whisper-tuner wizard
+gemma-macos-tuner wizard
 
 # 3) Optional: tiny overfit sanity (16–64 samples)
-python -m whisper_tuner.scripts.gemma_tiny_overfit --profile gemma-lora-test --max-samples 32
+python -m gemma_tuner.scripts.gemma_tiny_overfit --profile gemma-lora-test --max-samples 32
 
 # 4) Evaluate (WER/CER) on a validation CSV
 python tools/eval_gemma_asr.py \
@@ -482,12 +478,12 @@ Create a CSV file with columns:
 
 **Standard Mode** (downloads all audio files locally):
 ```bash
-whisper-tuner prepare your_dataset
+gemma-macos-tuner prepare your_dataset
 ```
 
 **Streaming Mode** (for large datasets - no local download):
 ```bash
-whisper-tuner prepare your_dataset --no-download
+gemma-macos-tuner prepare your_dataset --no-download
 ```
 
 With `--no-download`, audio files are streamed from Google Cloud Storage during training. The loader validates that your CSV contains at least `id` and your configured text column.
@@ -504,28 +500,28 @@ Edit `config.ini` to set:
 export PYTORCH_ENABLE_MPS_FALLBACK=1
 
 # Train (Typer CLI)
-whisper-tuner finetune medium-data3 --json-logging
+gemma-macos-tuner finetune medium-data3 --json-logging
 
 # Or use the installed console command after `pip install .`:
-whisper-tuner finetune medium-data3 --json-logging
+gemma-macos-tuner finetune medium-data3 --json-logging
 
 # Legacy (still supported)
-whisper-tuner finetune medium-data3
+gemma-macos-tuner finetune medium-data3
 ```
 
 ### 4. Evaluate model
 ```bash
 # Evaluate (Typer CLI)
-whisper-tuner evaluate medium-data3
-whisper-tuner evaluate whisper-tiny+test_streaming
+gemma-macos-tuner evaluate medium-data3
+gemma-macos-tuner evaluate whisper-tiny+test_streaming
 
 # Or with console command
-whisper-tuner evaluate medium-data3
-whisper-tuner evaluate whisper-tiny+test_streaming
+gemma-macos-tuner evaluate medium-data3
+gemma-macos-tuner evaluate whisper-tiny+test_streaming
 
 # Legacy (still supported)
-whisper-tuner evaluate medium-data3
-whisper-tuner evaluate output/{id}-medium-data3 --dataset data3
+gemma-macos-tuner evaluate medium-data3
+gemma-macos-tuner evaluate output/{id}-medium-data3 --dataset data3
 ### 5. Export to GGUF (whisper.cpp) and CoreML (Hybrid)
 
 After a successful training run, the system automatically attempts two exports:
@@ -538,8 +534,8 @@ After a successful training run, the system automatically attempts two exports:
 
 Manual export at any time:
 ```bash
-whisper-tuner export output/{id}-<profile>
-python -m whisper_tuner.scripts.export_coreml output/{id}-<profile>
+gemma-macos-tuner export output/{id}-<profile>
+python -m gemma_tuner.scripts.export_coreml output/{id}-<profile>
 ```
 
 Expected output files inside the run directory:
@@ -562,10 +558,10 @@ Notes:
 ### 1. Choose a LoRA profile and run training
 ```bash
 # Start with small model (recommended for testing)
-whisper-tuner finetune small-lora-data3
+gemma-macos-tuner finetune small-lora-data3
 
 # Scale up to medium for better performance
-whisper-tuner finetune medium-lora-data3
+gemma-macos-tuner finetune medium-lora-data3
 
 # For Apple Silicon - enable fallback initially
 export PYTORCH_ENABLE_MPS_FALLBACK=1
@@ -581,7 +577,7 @@ output/run-001-small-lora-data3/
 
 ### 3. Evaluate your LoRA model
 ```bash
-whisper-tuner evaluate output/run-001-small-lora-data3 --dataset data3
+gemma-macos-tuner evaluate output/run-001-small-lora-data3 --dataset data3
 ```
 
 **Need more control?** See the **[LoRA Apple Silicon Guide](README/guides/apple-silicon/LoRA-Apple-Silicon-Guide.md)** for:
@@ -601,7 +597,7 @@ For datasets too large to fit in memory, enable streaming mode:
 streaming_enabled = true
 
 # Or via command line (Typer):
-whisper-tuner finetune large-dataset-streaming
+gemma-macos-tuner finetune large-dataset-streaming
 ```
 
 **Streaming Mode Features:**
@@ -627,10 +623,10 @@ Built-in support for the world's largest public speech dataset with optimized pr
 
 ```bash
 # Interactive setup via wizard
-whisper-tuner wizard  # Select "Setup NVIDIA Granary Dataset"
+gemma-macos-tuner wizard  # Select "Setup NVIDIA Granary Dataset"
 
 # Direct preparation
-whisper-tuner prepare-granary granary-en
+gemma-macos-tuner prepare-granary granary-en
 
 # With streaming for memory efficiency
 [dataset:granary-streaming]
@@ -710,7 +706,7 @@ CI is split across:
 
 ```bash
 # One-line system report (Python, Torch, device, MPS)
-whisper-tuner system-check
+gemma-macos-tuner system-check
 ```
 
 ### Reproducible installs
@@ -756,7 +752,7 @@ ORDER BY dataset, wer;"
 
 ```bash
 # Legacy manage.py (deprecated; prefer `runs` group)
-whisper-tuner legacy manage
+gemma-macos-tuner legacy manage
 ```
 
 ## Typer CLI (Recommended)
@@ -765,31 +761,31 @@ Use the Typer CLI for a friendlier interface that delegates to the same core mod
 
 ```bash
 # Prepare data
-whisper-tuner prepare data3
+gemma-macos-tuner prepare data3
 
 # Prepare NVIDIA Granary dataset
-whisper-tuner prepare-granary granary-en
+gemma-macos-tuner prepare-granary granary-en
 
 # Train
-whisper-tuner finetune medium-data3 --json-logging
+gemma-macos-tuner finetune medium-data3 --json-logging
 
 # Evaluate
-whisper-tuner evaluate medium-data3
-whisper-tuner evaluate whisper-tiny+test_streaming
+gemma-macos-tuner evaluate medium-data3
+gemma-macos-tuner evaluate whisper-tiny+test_streaming
 
 # Export (HF/SafeTensors model dir)
 # Exports the model directory as-is with SafeTensors (no GGML/CT2 conversion)
-whisper-tuner export output/{id}-medium-data3
+gemma-macos-tuner export output/{id}-medium-data3
 
 # Diagnostics
-whisper-tuner system-check
+gemma-macos-tuner system-check
 ```
 
 The legacy `main.py` and scripts remain supported.
 
 ### Migration guide (legacy → Typer CLI)
 
-See `MIGRATION.md` for a concise mapping from old invocations (main.py/manage.py) to the modern `whisper-tuner` commands. The `legacy` command group also provides wrappers: `whisper-tuner legacy main` and `whisper-tuner legacy manage`.
+See `MIGRATION.md` for a concise mapping from old invocations (main.py/manage.py) to the modern `gemma-macos-tuner` commands. The `legacy` command group also provides wrappers: `gemma-macos-tuner legacy main` and `gemma-macos-tuner legacy manage`.
 
 ## Visualizer Controls
 
@@ -803,8 +799,8 @@ See `MIGRATION.md` for a concise mapping from old invocations (main.py/manage.py
 ## Project Structure
 ```
 whisper-fine-tuner-macos/
-├── whisper_tuner/
-│   ├── cli_typer.py        # Canonical Typer CLI backing `whisper-tuner`
+├── gemma_tuner/
+│   ├── cli_typer.py        # Canonical Typer CLI backing `gemma-macos-tuner`
 │   ├── core/               # Config, ops, runs, inference, BigQuery
 │   ├── models/             # Whisper, LoRA, distillation, Gemma
 │   ├── scripts/            # Prepare, evaluate, export, blacklist, diagnostics
@@ -876,7 +872,7 @@ For ultimate control over performance and model size, you can go beyond pre-defi
 The distillation script supports command-line arguments to define the student's architecture. For example, to create a student with a powerful encoder from `whisper-large-v2` but a tiny, custom 2-layer decoder, you could run:
 
 ```bash
-python -m whisper_tuner.models.distil_whisper.finetune \
+python -m gemma_tuner.models.distil_whisper.finetune \
   --model_name_or_path openai/whisper-small \
   --teacher_model_name_or_path openai/whisper-large-v2 \
   --student_decoder_layers 2 \
@@ -904,16 +900,16 @@ kl_weight = 0.5        # Weight balancing KL divergence vs cross-entropy loss
 2. **Run distillation training using profiles**:
 ```bash
 # Create a distilled whisper-small from whisper-large-v2 teacher
-whisper-tuner finetune distil-small-from-large
+gemma-macos-tuner finetune distil-small-from-large
 
 # Or create a distilled whisper-medium from whisper-large-v2 teacher  
-whisper-tuner finetune distil-medium-from-large
+gemma-macos-tuner finetune distil-medium-from-large
 ```
 
 Alternatively, run distillation directly:
 ```bash
 # Create a distilled whisper-small from whisper-large-v2 teacher
-python -m whisper_tuner.models.distil_whisper.finetune \
+python -m gemma_tuner.models.distil_whisper.finetune \
   --model_name_or_path openai/whisper-small \
   --teacher_model_name_or_path openai/whisper-large-v2 \
   --dataset_name your-dataset \
@@ -1012,11 +1008,11 @@ Our documentation adheres to these principles:
 
 ### Key Documentation Highlights
 
-- **`whisper_tuner/core/config.py`**: Hierarchical configuration system with complete merge order documentation
-- **`whisper_tuner/core/runs.py`**: Run management with directory structure diagrams and metadata schemas
-- **`whisper_tuner/core/ops.py`**: Operation dispatch with deferred import patterns for performance
-- **`whisper_tuner/utils/device.py`**: Comprehensive platform detection and memory management strategies
-- **`whisper_tuner/models/*/finetune.py`**: Training implementations with algorithm descriptions and memory requirements
+- **`gemma_tuner/core/config.py`**: Hierarchical configuration system with complete merge order documentation
+- **`gemma_tuner/core/runs.py`**: Run management with directory structure diagrams and metadata schemas
+- **`gemma_tuner/core/ops.py`**: Operation dispatch with deferred import patterns for performance
+- **`gemma_tuner/utils/device.py`**: Comprehensive platform detection and memory management strategies
+- **`gemma_tuner/models/*/finetune.py`**: Training implementations with algorithm descriptions and memory requirements
 
 ### For AI Developers
 

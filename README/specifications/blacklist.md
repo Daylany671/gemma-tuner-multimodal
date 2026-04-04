@@ -356,15 +356,15 @@ max_samples = 1000  # For testing
 
 ```bash
 # Generate blacklist for profile
-whisper-tuner blacklist whisper-base-profile
+gemma-macos-tuner blacklist whisper-base-profile
 
 # With custom thresholds
-whisper-tuner blacklist whisper-base-profile \
+gemma-macos-tuner blacklist whisper-base-profile \
     --wer_threshold 60.0 \
     --validation_wer_threshold 70.0
 
 # Limited samples for testing
-whisper-tuner blacklist whisper-base-profile \
+gemma-macos-tuner blacklist whisper-base-profile \
     --max_samples 100
 ```
 
@@ -398,16 +398,16 @@ def load_dataset_split(split, dataset_config, patches_dir):
 
 ```bash
 # Round 1: Initial training
-whisper-tuner finetune whisper-base-profile
+gemma-macos-tuner finetune whisper-base-profile
 
 # Round 2: Generate blacklist
-whisper-tuner blacklist whisper-base-profile
+gemma-macos-tuner blacklist whisper-base-profile
 
 # Round 3: Retrain without outliers
-whisper-tuner finetune whisper-base-profile-v2
+gemma-macos-tuner finetune whisper-base-profile-v2
 
 # Round 4: Re-evaluate quality
-whisper-tuner blacklist whisper-base-profile-v2
+gemma-macos-tuner blacklist whisper-base-profile-v2
 ```
 
 ## Best Practices
@@ -433,7 +433,7 @@ Establish systematic review workflows:
 
 ```python
 # 1. Generate initial blacklist
-whisper-tuner blacklist profile
+gemma-macos-tuner blacklist profile
 
 # 2. Export high-WER samples for review
 blacklist_df = pd.read_csv("blacklist.csv")
@@ -580,15 +580,15 @@ for i in range(0, len(dataset), chunk_size):
 ### 1. With Training Pipeline
 ```python
 # Automatic blacklist application during training
-whisper-tuner prepare dataset_name
-whisper-tuner blacklist whisper-profile
-whisper-tuner finetune whisper-profile  # Automatically excludes blacklisted
+gemma-macos-tuner prepare dataset_name
+gemma-macos-tuner blacklist whisper-profile
+gemma-macos-tuner finetune whisper-profile  # Automatically excludes blacklisted
 ```
 
 ### 2. With Evaluation
 ```python
 # Evaluate only on high-quality samples
-whisper-tuner evaluate whisper-profile \
+gemma-macos-tuner evaluate whisper-profile \
     --exclude_blacklist \
     --min_quality_threshold 90
 ```

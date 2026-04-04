@@ -142,7 +142,7 @@ Every run includes comprehensive metadata in `metadata.json`:
 
 ### Optional Export: CoreML (Hybrid ANE)
 
-**Command**: `python -m whisper_tuner.scripts.export_coreml <run_dir>`
+**Command**: `python -m gemma_tuner.scripts.export_coreml <run_dir>`
 
 **What It Creates**:
 - `coreml/whisper-encoder.mlmodelc`: ANE-optimized encoder
@@ -156,7 +156,7 @@ Every run includes comprehensive metadata in `metadata.json`:
 
 ### Standard HuggingFace Export
 
-**Command**: `whisper-tuner export <profile_or_path>`
+**Command**: `gemma-macos-tuner export <profile_or_path>`
 
 **Purpose**: Creates a clean HuggingFace model directory for:
 - Uploading to HuggingFace Hub
@@ -224,7 +224,7 @@ Failed runs are clearly marked:
 
 **Latest Completed Run**:
 ```python
-from whisper_tuner.core.runs import find_latest_completed_finetuning_run
+from gemma_tuner.core.runs import find_latest_completed_finetuning_run
 model_path = find_latest_completed_finetuning_run("output", "whisper-base")
 ```
 
@@ -276,17 +276,17 @@ model = whisper_cpp.load_model("output/1-whisper-base-custom/model-f16.gguf")
 
 **Export to GGUF** (if auto-export was skipped):
 ```bash
-python -m whisper_tuner.scripts.export_gguf output/1-whisper-base-custom
+python -m gemma_tuner.scripts.export_gguf output/1-whisper-base-custom
 ```
 
 **Export to CoreML** (for iOS/macOS apps):
 ```bash
-python -m whisper_tuner.scripts.export_coreml output/1-whisper-base-custom
+python -m gemma_tuner.scripts.export_coreml output/1-whisper-base-custom
 ```
 
 **Export to Standard HF Format**:
 ```bash
-whisper-tuner export output/1-whisper-base-custom
+gemma-macos-tuner export output/1-whisper-base-custom
 ```
 
 ### Platform-Specific Optimizations
@@ -360,7 +360,7 @@ whisper-tuner export output/1-whisper-base-custom
 
 1. **Start Training**:
    ```bash
-   whisper-tuner finetune whisper-base-meeting-audio
+   gemma-macos-tuner finetune whisper-base-meeting-audio
    ```
 
 2. **Training Completes**:
@@ -381,7 +381,7 @@ whisper-tuner export output/1-whisper-base-custom
 
 1. **Train LoRA Adapter**:
    ```bash
-   whisper-tuner finetune whisper-lora-efficient
+   gemma-macos-tuner finetune whisper-lora-efficient
    ```
 
 2. **Adapter Saved** (10-50MB):
@@ -394,7 +394,7 @@ whisper-tuner export output/1-whisper-base-custom
 
 4. **Optional Full Export**:
    ```bash
-   whisper-tuner export output/3-whisper-lora-efficient
+   gemma-macos-tuner export output/3-whisper-lora-efficient
    ```
 
 ### Failed Run Recovery
@@ -405,7 +405,7 @@ whisper-tuner export output/1-whisper-base-custom
 
 2. **Resume from Checkpoint**:
    ```bash
-   whisper-tuner finetune whisper-base-custom \
+   gemma-macos-tuner finetune whisper-base-custom \
      --resume-from output/2-whisper-base-custom/checkpoint-500
    ```
 

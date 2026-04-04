@@ -69,7 +69,7 @@ The CLI Wizard transforms the complex process of fine-tuning Whisper models into
 ### Integration Architecture
 
 ```python
-whisper_tuner/wizard/
+gemma_tuner/wizard/
 ├── show_welcome_screen()          # System detection & branding
 ├── select_training_method()        # Method selection (SFT/LoRA/Distillation)
 ├── select_model()                  # Model selection with constraints
@@ -78,7 +78,7 @@ whisper_tuner/wizard/
 ├── configure_method_specifics()    # Method-specific settings
 ├── show_confirmation_screen()      # Final review & approval
 └── execute_training()              # Subprocess execution
-    └── whisper-tuner finetune           # Actual training execution
+    └── gemma-macos-tuner finetune           # Actual training execution
 ```
 
 ## User Experience Design

@@ -105,7 +105,7 @@ Notes:
 
 ## Phase 9 — Packaging & CLI Distribution
 - [ ] Add minimal `pyproject.toml` with a single console script:
-  - Entry point `whisper-tuner` → Typer CLI.
+  - Entry point `gemma-macos-tuner` → Typer CLI.
   - Defer extras (`[viz]`, `[gcs]`, `[dev]`) to a later release.
 - [ ] Installation docs:
   - pip/pipx instructions; minimal env bootstrap that respects torch-per-platform guidance.

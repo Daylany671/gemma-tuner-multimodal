@@ -25,7 +25,7 @@ This guide covers common issues for Apple Silicon (MPS).
 - Legacy scripts `main.py` and `manage.py` are deprecated.
 - Use modern commands:
   ```bash
-  whisper-tuner finetune <profile>
-  whisper-tuner evaluate <profile | model+dataset>
-  whisper-tuner runs list
+  gemma-macos-tuner finetune <profile>
+  gemma-macos-tuner evaluate <profile | model+dataset>
+  gemma-macos-tuner runs list
   ```

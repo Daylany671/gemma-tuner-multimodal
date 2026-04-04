@@ -56,12 +56,12 @@ graph TD
 
 This plan is broken down into five actionable steps for the engineering team. The implementation should be straightforward and isolated, primarily involving the creation of a new script.
 
-### Step 1: Extend Configuration System (`whisper_tuner/core/config.py`)
+### Step 1: Extend Configuration System (`gemma_tuner/core/config.py`)
 
 The system needs to know how to find the externally downloaded audio files. We'll add new, clearly-named keys to our dataset configuration for this.
 
 -   **Action:** Extend the configuration loader to recognize `audio_source_*` keys.
--   **File to Modify:** `whisper_tuner/core/config.py`.
+-   **File to Modify:** `gemma_tuner/core/config.py`.
 -   **Details:**
     -   In the `load_profile_config` function (or equivalent), add logic to iterate through keys in a dataset section.
     -   If a key starts with `audio_source_`, parse it and add it to a dictionary called `audio_sources`. The key should be the part after the prefix (e.g., `voxpopuli`) and the value should be the path.
@@ -80,11 +80,11 @@ The system needs to know how to find the externally downloaded audio files. We'l
     # The 'yodas' corpus is included in the HF download, so it doesn't need a path here.
     ```
 
-### Step 2: Create Data Preparation Script (`whisper_tuner/scripts/prepare_granary.py`)
+### Step 2: Create Data Preparation Script (`gemma_tuner/scripts/prepare_granary.py`)
 
 This is the core of the implementation. This script will be robust, user-friendly, and contain all the dataset-specific logic.
 
--   **New File:** `whisper_tuner/scripts/prepare_granary.py`
+-   **New File:** `gemma_tuner/scripts/prepare_granary.py`
 -   **Pseudocode / Structure:**
     ```python
     import argparse
@@ -94,7 +94,7 @@ This is the core of the implementation. This script will be robust, user-friendl
     from datasets import load_dataset
     from tqdm import tqdm
 
-    from whisper_tuner.core.config import load_profile_config # Or equivalent
+    from gemma_tuner.core.config import load_profile_config # Or equivalent
 
     def prepare_granary(profile_name):
         """
@@ -162,18 +162,18 @@ This is the core of the implementation. This script will be robust, user-friendl
         prepare_granary(args.profile)
     ```
 
-### Step 3: Minimal Dataset Loader Integration (`whisper_tuner/utils/dataset_utils.py`)
+### Step 3: Minimal Dataset Loader Integration (`gemma_tuner/utils/dataset_utils.py`)
 
 No changes should be necessary here, which is the entire point of our decoupled approach. This step is for verification.
 
 -   **Action:** Verify that the existing `load_dataset_split` function can load the manifest created by `prepare_granary.py` without modification.
 -   **Verification:** A unit test should be added that runs `prepare_granary` on a tiny, mocked dataset and then feeds the resulting manifest path to `load_dataset_split` to ensure it loads correctly.
 
-### Step 4: Add CLI and Wizard Hooks (`whisper_tuner/cli_typer.py`, `whisper_tuner/wizard/`)
+### Step 4: Add CLI and Wizard Hooks (`gemma_tuner/cli_typer.py`, `gemma_tuner/wizard/`)
 
--   **File to Modify:** `whisper_tuner/cli_typer.py`
-    -   Add a new command `prepare-granary` that calls the `prepare_granary.py` script. This keeps the canonical `whisper-tuner` entrypoint consistent.
--   **File to Modify:** `whisper_tuner/wizard/`
+-   **File to Modify:** `gemma_tuner/cli_typer.py`
+    -   Add a new command `prepare-granary` that calls the `prepare_granary.py` script. This keeps the canonical `gemma-macos-tuner` entrypoint consistent.
+-   **File to Modify:** `gemma_tuner/wizard/`
     -   In the dataset selection step, add an option like "Setup a new large-scale dataset (e.g., Granary)...".
     -   If selected, the wizard should print a clear, multi-line message explaining the manual steps required (download audio, edit `config.ini`) and then offer to run the `prepare-granary` command for the user once they've done so.
 
@@ -195,7 +195,7 @@ This is critical for user success.
 
 The integration will be considered complete when an engineer can successfully:
 1.  Configure a new `[dataset:granary-en]` section in `config.ini` with local paths to downloaded audio.
-2.  Run `whisper-tuner prepare-granary granary-en` and have it successfully generate a `_prepared.csv` file without errors.
+2.  Run `gemma-macos-tuner prepare-granary granary-en` and have it successfully generate a `_prepared.csv` file without errors.
 3.  Launch a training run using a profile that points to this new dataset, and have the training start successfully, loading data from the prepared manifest.
 4.  All new code is accompanied by relevant unit tests and documentation.
 

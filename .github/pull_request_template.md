@@ -5,7 +5,7 @@
 ## Test plan
 
 - [ ] `pytest -q` fast tests pass
-- [ ] Manual CLI smoke: `whisper-tuner system-check` and `whisper-tuner distributed-train --dry-run`
+- [ ] Manual CLI smoke: `gemma-macos-tuner system-check` and `gemma-macos-tuner distributed-train --dry-run`
 
 ## Notes
 

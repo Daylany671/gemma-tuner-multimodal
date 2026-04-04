@@ -34,7 +34,7 @@ Training Process                 Visualization Server              Web Browser
 
 ### Core Components
 
-#### 1. Backend Architecture (`whisper_tuner/visualizer.py`)
+#### 1. Backend Architecture (`gemma_tuner/visualizer.py`)
 
 ##### TrainingVisualizer Class
 ```python
@@ -75,7 +75,7 @@ class TrainingVisualizer:
 - **Animation Loop**: RequestAnimationFrame at 60 FPS
 - **Progressive Rendering**: LOD for performance
 
-#### 3. Integration Layer (`whisper_tuner/models/common/visualizer.py`)
+#### 3. Integration Layer (`gemma_tuner/models/common/visualizer.py`)
 
 ##### VisualizerTrainerCallback
 ```python
@@ -243,7 +243,7 @@ Training Step → Loss Computation → Backward Pass → Optimizer Step
 
 ```
 User Flow:
-1. Run wizard → whisper-tuner wizard
+1. Run wizard → gemma-macos-tuner wizard
 2. Configure training parameters
 3. "Enable live training visualization?" → YES
 4. Training starts → Server launches
@@ -255,8 +255,8 @@ User Flow:
 
 ```python
 # In training script
-from whisper_tuner.visualizer import init_visualizer, start_visualization_server
-from whisper_tuner.models.common.visualizer import VisualizerTrainerCallback
+from gemma_tuner.visualizer import init_visualizer, start_visualization_server
+from gemma_tuner.models.common.visualizer import VisualizerTrainerCallback
 
 # Initialize
 viz = init_visualizer(model, device)
@@ -401,7 +401,7 @@ self.loss_history = deque(maxlen=1000)
 ### 1. Standard Fine-Tuning Integration
 
 ```python
-# In whisper_tuner/models/whisper/finetune.py
+# In gemma_tuner/models/whisper/finetune.py
 if profile_config.get('visualize', False):
     callbacks.append(
         VisualizerTrainerCallback(

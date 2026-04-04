@@ -41,7 +41,7 @@ pip install flask flask-socketio python-socketio
 
 ### 2. Use with the Wizard
 ```bash
-whisper-tuner wizard
+gemma-macos-tuner wizard
 # When asked "Enable live training visualization?" → Say YES! 🎆
 ```
 
@@ -53,7 +53,7 @@ whisper-tuner wizard
 ## 🎮 How to Use
 
 ### With Training Wizard
-1. Run `whisper-tuner wizard`
+1. Run `gemma-macos-tuner wizard`
 2. Configure your training as normal
 3. When asked about visualization, choose **Yes**
 4. Browser opens automatically when training starts
@@ -61,7 +61,7 @@ whisper-tuner wizard
 
 ### Manual Integration
 ```python
-from whisper_tuner.visualizer import init_visualizer, get_visualizer
+from gemma_tuner.visualizer import init_visualizer, get_visualizer
 
 # In your training script
 model = WhisperForConditionalGeneration.from_pretrained("openai/whisper-base")
@@ -71,7 +71,7 @@ device = torch.device("mps")
 viz = init_visualizer(model, device)
 
 # Start the server
-from whisper_tuner.visualizer import start_visualization_server
+from gemma_tuner.visualizer import start_visualization_server
 start_visualization_server(open_browser=True)
 
 # In your training loop
@@ -161,7 +161,7 @@ viz.update_frequency = 5  # Update every 5 steps instead of 10
 ## 🏗️ Architecture
 
 ```
-whisper_tuner/visualizer.py  # Backend server + data extraction
+gemma_tuner/visualizer.py  # Backend server + data extraction
 ├── templates/
 │   └── index.html    # Main UI with Three.js setup
 └── static/
