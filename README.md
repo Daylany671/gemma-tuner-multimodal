@@ -21,7 +21,7 @@ Train **Google Gemma** multimodal (audio + text) models on your own data—with 
 
 This repository is a **Gemma-first** toolkit: the training path loads Hugging Face Gemma checkpoints, injects PEFT LoRA adapters, and runs the supervised fine-tuning loop in `gemma_tuner/models/gemma/finetune.py`. If your profile’s model name does not contain `gemma`, `gemma_tuner/scripts/finetune.py` will refuse—by design.
 
-Older forks talked a lot about Whisper, GGUF, and hybrid Core ML encoders. **That is not what ships here today.** Export produces a **merged or plain Hugging Face / SafeTensors directory** for downstream use (`gemma_tuner/scripts/export.py`). If you are chasing Whisper.cpp / Core ML deployment patterns, start with [`README/guides/README.md`](README/guides/README.md) and [`README/specifications/Deployment.md`](README/specifications/Deployment.md)—those docs describe deployment tradeoffs; this repo’s **training** path is Gemma-only.
+Export produces a **merged or plain Hugging Face / SafeTensors directory** for downstream use (`gemma_tuner/scripts/export.py`). If you are chasing Whisper.cpp / Core ML deployment patterns, start with [`README/guides/README.md`](README/guides/README.md) and [`README/specifications/Deployment.md`](README/specifications/Deployment.md)—those docs describe deployment tradeoffs; this repo’s **training** path is Gemma-only.
 
 ---
 
@@ -37,6 +37,25 @@ Older forks talked a lot about Whisper, GGUF, and hybrid Core ML encoders. **Tha
 - **Interactive wizard**: `gemma-macos-tuner wizard`—questions, sane defaults, fewer foot-guns.
 
 **Deeper reading:** curated field guides in [`README/guides/README.md`](README/guides/README.md); product specs in [`README/specifications/`](README/specifications/).
+
+---
+
+## Supported models
+
+Training targets **Gemma multimodal (audio + text)** checkpoints loaded via `base_model` in [`config.ini`](config.ini) and routed to [`gemma_tuner/models/gemma/finetune.py`](gemma_tuner/models/gemma/finetune.py). The default file ships these **`[model:…]`** entries (LoRA on top of the Hub weights):
+
+| Model key (`config.ini`) | Hugging Face `base_model` | Notes |
+| --- | --- | --- |
+| `gemma-4-e2b-it` | [`google/gemma-4-E2B-it`](https://huggingface.co/google/gemma-4-E2B-it) | Gemma 4 instruct, ~2B effective — usual default |
+| `gemma-4-e4b-it` | [`google/gemma-4-E4B-it`](https://huggingface.co/google/gemma-4-E4B-it) | Gemma 4 instruct, ~4B effective |
+| `gemma-4-e2b` | [`google/gemma-4-E2B`](https://huggingface.co/google/gemma-4-E2B) | Gemma 4 base (not instruct-tuned) |
+| `gemma-4-e4b` | [`google/gemma-4-E4B`](https://huggingface.co/google/gemma-4-E4B) | Gemma 4 base (not instruct-tuned) |
+| `gemma-3n-e2b-it` | [`google/gemma-3n-E2B-it`](https://huggingface.co/google/gemma-3n-E2B-it) | Gemma 3n instruct, ~2B effective |
+| `gemma-3n-e4b-it` | [`google/gemma-3n-E4B-it`](https://huggingface.co/google/gemma-3n-E4B-it) | Gemma 3n instruct, ~4B effective |
+
+Add your own **`[model:your-name]`** section with `group = gemma` and a compatible `base_model` if you need another **any-to-any** Gemma 3n / Gemma 4 E2B–E4B checkpoint. **Larger Gemma 4 weights** on Hugging Face (for example 26B or 31B class) use a different Transformers architecture than this trainer’s `AutoModelForCausalLM` audio path—they are **not** supported here yet.
+
+Wizard time and memory hints come from [`gemma_tuner/wizard/base.py`](gemma_tuner/wizard/base.py) (`ModelSpecs`).
 
 ---
 
@@ -118,6 +137,12 @@ Optional extras (see `pyproject.toml`):
 ```bash
 gemma-macos-tuner system-check
 ```
+
+### 5. Before you run training (first time)
+
+- **Hugging Face:** Gemma checkpoints are **gated** on the Hub. Open each model card (see [Supported models](#supported-models)), accept Google’s terms, then authenticate so downloads work: install [`huggingface_hub`](https://huggingface.co/docs/huggingface_hub/quick-start) and run `huggingface-cli login`, or set **`HF_TOKEN`** in the environment for CI/servers.
+- **Config file:** The CLI loads **`config.ini`** from the current working directory unless you set **`GEMMA_TUNER_CONFIG`** to an absolute path—handy when you are not in the repo root.
+- **Data:** Training reads **prepared CSVs** and **`[dataset:…]`** sections in that INI (local paths, GCS, Granary, BigQuery flows)—not raw Hugging Face Hub dataset names. See [Data: CSVs, GCS, BigQuery](#data-csvs-gcs-bigquery) and [`README/Datasets.md`](README/Datasets.md).
 
 ---
 
@@ -240,6 +265,7 @@ Runs update `output/experiments.csv` and optional SQLite—handy SQL examples ar
 | OOM / swap storm | Smaller batch, gradient checkpointing, lower `PYTORCH_MPS_HIGH_WATERMARK_RATIO`. |
 | Slow training with fallback env on | Unset `PYTORCH_ENABLE_MPS_FALLBACK` after debugging. |
 | Config not found | `GEMMA_TUNER_CONFIG` or run from the directory that contains `config.ini`. |
+| 401 / gated model / cannot download weights | Accept the license on the model’s Hugging Face page; run `huggingface-cli login` or set `HF_TOKEN`. |
 
 ---
 

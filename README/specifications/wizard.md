@@ -2,12 +2,14 @@
 
 ## Executive Summary
 
-The Whisper Fine-Tuner CLI Wizard is a Steve Jobs-inspired interactive command-line interface that guides users through the entire Whisper model fine-tuning process with zero configuration required. It implements progressive disclosure principles to create an elegant, Apple-like experience that's simple for beginners yet powerful for experts.
+The **Gemma macOS Tuner** CLI wizard (`gemma-macos-tuner wizard` or `python wizard.py`) is an interactive command-line flow that guides users through **Gemma** LoRA fine-tuning with progressive disclosure: one question at a time, smart defaults, and Rich terminal output. It targets **Apple Silicon (MPS)** workflows defined in `config.ini` (models, datasets, profiles).
+
+**Note:** Older drafts of this document used Whisper-centric examples. The shipped wizard is **Gemma + LoRA only**; illustrative diagrams below may still show multi-method or legacy sample names where not explicitly updated.
 
 ## Product Overview
 
 ### Purpose
-The CLI Wizard transforms the complex process of fine-tuning Whisper models into a guided, conversational experience. It eliminates the traditional barriers of machine learning training - configuration files, parameter tuning, hardware management - by asking simple questions and making intelligent decisions behind the scenes.
+The CLI wizard turns Gemma LoRA setup into a guided session: pick a model, dataset (local CSV/audio, BigQuery import, Granary, or custom path), hyperparameters, and LoRA options—then generate a profile and launch training via the same `finetune` path as the main CLI.
 
 ### Core Philosophy
 - **Progressive Disclosure**: Show only what's relevant at each step
@@ -23,7 +25,7 @@ The CLI Wizard transforms the complex process of fine-tuning Whisper models into
 - **Enterprises**: Teams needing consistent, reproducible training workflows
 
 ### Value Proposition
-"From zero to training in 6 questions - the simplest way to fine-tune Whisper models."
+From zero to a training run in a short guided flow—the simplest on-ramp to Gemma LoRA fine-tuning on macOS with MPS.
 
 ## Technical Architecture
 
@@ -71,7 +73,7 @@ The CLI Wizard transforms the complex process of fine-tuning Whisper models into
 ```python
 gemma_tuner/wizard/
 ├── show_welcome_screen()          # System detection & branding
-├── select_training_method()        # Method selection (SFT/LoRA/Distillation)
+├── select_training_method()        # LoRA for Gemma (single path today)
 ├── select_model()                  # Model selection with constraints
 ├── select_dataset()                # Dataset discovery & selection
 ├── configure_training_parameters() # Core hyperparameters
@@ -115,7 +117,7 @@ Level 3 (Expert):
 ╚███╔███╔╝██║  ██║██║███████║██║     ███████╗██║  ██║
  ╚══╝╚══╝ ╚═╝  ╚═╝╚═╝╚══════╝╚═╝     ╚══════╝╚═╝  ╚═╝
 
-Welcome to the Whisper Fine-Tuning Wizard!
+Welcome to the Gemma Fine-Tuning Wizard!
 System Status: ✅ Apple Silicon (MPS) | 32GB RAM | Ready
 ```
 
@@ -136,7 +138,7 @@ System Status: ✅ Apple Silicon (MPS) | 32GB RAM | Ready
 
 ## Core Features
 
-### 6-Step Wizard Workflow
+### Wizard Workflow (interactive steps)
 
 #### Step 0: Welcome & System Detection
 - Hardware capability detection (MPS/CUDA/CPU)
@@ -147,9 +149,7 @@ System Status: ✅ Apple Silicon (MPS) | 32GB RAM | Ready
 #### Step 1: Training Method Selection
 ```
 Choose your training method:
-> 🚀 Standard Fine-Tune (SFT) - Highest quality
-  🎨 LoRA Fine-Tune - Memory efficient (40% less RAM)
-  🧠 Knowledge Distillation - Create smaller, faster models
+> 🎨 LoRA Fine-Tune - Memory-efficient fine-tuning for Gemma (only option)
 ```
 
 **Decision Logic**:
@@ -160,10 +160,9 @@ Choose your training method:
 #### Step 2: Model Selection
 ```
 Which model do you want to fine-tune?
-> whisper-tiny (39M) - ~30 min, 1.2GB memory
-  whisper-base (74M) - ~1 hour, 2.1GB memory
-  whisper-small (244M) - ~2.5 hours, 4.2GB memory ⭐ Recommended
-  whisper-medium (769M) - ~6 hours, 8.4GB memory
+> gemma-4-e2b-it (~2B) - ~9.0 hours, 10.0GB memory ⭐ Recommended
+  gemma-4-e4b-it (~4B) - ~16.0 hours, 18.0GB memory
+  (Additional Gemma variants appear if listed in config.ini and fit memory.)
 ```
 
 **Intelligent Filtering**:
@@ -229,13 +228,13 @@ Select temperature:
   10.0 (Aggressive)
 ```
 
-#### Step 6: Confirmation & Execution
+#### Step 7: Confirmation & Execution
 ```
 ┌─────────────────────────────────────┐
 │ Training Configuration              │
 ├─────────────────────────────────────┤
 │ Method:     🎨 LoRA Fine-Tune       │
-│ Model:      whisper-small           │
+│ Model:      gemma-4-e2b-it          │
 │ Dataset:    common_voice (50k)      │
 │ Learning:   1e-5                    │
 │ Epochs:     3                       │
@@ -250,19 +249,12 @@ Select temperature:
 Ready to start training? (y/n): _
 ```
 
-### Gemma 3n Integration - ✅ FULLY IMPLEMENTED
+### Gemma workflow (current product)
 
-#### Step 0b: Model Family Selection - ✅ COMPLETED
-After the welcome screen, the wizard presents the model family choice as the first decision point:
+The interactive wizard **does not** present a Whisper vs Gemma family menu; it assumes **Gemma** (`family = "gemma"` in code) and **LoRA** only.
 
-```
-? Choose the model family you want to work with:
-  ❯ 🌬️ Whisper - The robust ASR model from OpenAI.
-    💎 Gemma - The new multimodal model from Google.
-```
-
-#### Gemma-Specific Workflow - ✅ COMPLETED
-When **Gemma** is selected, the wizard automatically applies intelligent constraints and optimizations:
+#### Gemma-specific behavior
+The wizard applies these constraints:
 
 **✅ Training Method Restriction**:
 - Only **LoRA** is available for Gemma models (standard fine-tuning hidden due to memory requirements)
@@ -272,7 +264,7 @@ When **Gemma** is selected, the wizard automatically applies intelligent constra
 - Model list intelligently filtered to show only compatible Gemma variants:
   - `gemma-3n-e2b-it` (Elastic 2B) - ⭐ Recommended for most hardware
   - `gemma-3n-e4b-it` (Elastic 4B) - Only shown if sufficient memory available
-- Memory gating uses `ModelSpecs.MODES` with 20% safety buffer to prevent selection of incompatible models
+- Memory gating uses `ModelSpecs.MODELS` with 20% safety buffer to prevent selection of incompatible models
 - Real-time memory estimation prevents out-of-memory errors
 
 **✅ Automatic Configuration Optimization**:
