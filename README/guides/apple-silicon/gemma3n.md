@@ -1,5 +1,7 @@
 # Gemma 3n on Apple Silicon: A Developer's Field Guide
 
+> **Note:** Gemma 4 (`google/gemma-4-E2B`) is now the primary fine-tuning target. The architecture covered here (USM audio encoder, LoRA targets, MPS setup) applies equally to Gemma 4. Gemma 3n remains supported.
+
 Product integration and CLI behavior: [`../../specifications/Gemma3n.md`](../../specifications/Gemma3n.md).
 
 This guide provides a condensed overview of the Gemma 3n architecture, with a practical focus on fine-tuning and deployment on Apple Silicon hardware.
@@ -114,7 +116,7 @@ Instantiate the `SFTTrainer` and start training.
 from transformers import AutoModelForCausalLM, AutoTokenizer
 from trl import SFTTrainer
 
-model_id = "google/gemma-3n-E2B-it"
+model_id = "google/gemma-4-E2B"
 model = AutoModelForCausalLM.from_pretrained(model_id, device_map="auto")
 tokenizer = AutoTokenizer.from_pretrained(model_id)
 
@@ -187,7 +189,7 @@ Models must be converted from Hugging Face format to an MLX-compatible format.
 
 ```bash
 # Convert and quantize a model to 4-bit MLX format
-python -m mlx_lm.convert --hf-path google/gemma-3n-E2B-it -q
+python -m mlx_lm.convert --hf-path google/gemma-4-E2B -q
 ```
 
 **2. Data Formatting (JSONL)**

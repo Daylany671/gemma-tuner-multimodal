@@ -1,5 +1,7 @@
 # Gemma 3n Multimodal Fine-Tuning Product Specification
 
+> **Note:** Gemma 4 (`google/gemma-4-E2B`) is now the primary fine-tuning target. Gemma 3n remains supported. This document covers the original Gemma 3n integration; Gemma 4 uses the same pipeline (identical USM-style audio encoder, same LoRA targets, same collator).
+
 Related: condensed developer notes — [`../guides/apple-silicon/gemma3n.md`](../guides/apple-silicon/gemma3n.md).
 
 ## Executive Summary
@@ -55,9 +57,11 @@ The wizard has been successfully extended to make Gemma 3n a first-class citizen
 2.  **✅ Gemma Model Selection with Hardware Gating**:
     When "Gemma" is selected, the wizard displays hardware-appropriate options.
     ```
-    ? Which Gemma 3n model do you want to fine-tune?
-      ❯ gemma-3n-e2b-it (Elastic 2B) - Faster, smaller memory footprint. ⭐ Recommended
-        gemma-3n-e4b-it (Elastic 4B) - Maximum capability, higher memory usage.
+    ? Which model do you want to fine-tune?
+      ❯ gemma-4-e2b (~2B) - Faster, smaller memory footprint. ⭐ Recommended
+        gemma-4-e4b (~4B) - Maximum capability, higher memory usage.
+        gemma-3n-e2b-it (~2B) - Gemma 3n (legacy)
+        gemma-3n-e4b-it (~4B) - Gemma 3n (legacy)
     ```
     **Memory Gating**: Uses `ModelSpecs.MODES` with 20% safety buffer to hide infeasible options based on available system memory.
 
@@ -84,7 +88,7 @@ The wizard has been successfully extended to make Gemma 3n a first-class citizen
     │ Training Configuration              │
     ├─────────────────────────────────────┤
     │ Family:     💎 Gemma                 │
-    │ Model:      gemma-3n-e2b-it         │
+    │ Model:      gemma-4-e2b              │
     │ Method:     🎨 LoRA Fine-Tune       │
     │ Dataset:    common_voice (50k)      │
     │ Data Type:  bfloat16                │
@@ -200,14 +204,14 @@ export PYTORCH_MPS_HIGH_WATERMARK_RATIO=0.8
 
 ```
 python -m gemma_tuner.scripts.gemma_preflight
-python -m gemma_tuner.scripts.gemma_profiler --model google/gemma-3n-E2B-it
+python -m gemma_tuner.scripts.gemma_profiler --model google/gemma-4-E2B
 ```
 
 ### 3) Run the Wizard (LoRA on Gemma)
 
 ```bash
 gemma-macos-tuner wizard
-# Step 0: Choose "Gemma" family -> LoRA -> gemma-3n-e2b-it (recommended)
+# Step 0: Choose "Gemma" family -> LoRA -> gemma-4-e2b (recommended)
 # Wizard enforces attn_implementation=eager for Gemma; bf16 preferred on MPS.
 ```
 
@@ -222,7 +226,7 @@ python -m gemma_tuner.scripts.gemma_tiny_overfit --profile gemma-lora-test --max
 ```
 python tools/eval_gemma_asr.py \
   --csv data/datasets/<your_dataset>/validation.csv \
-  --model google/gemma-3n-E2B-it \
+  --model google/gemma-4-E2B \
   --adapters output/<your_run>/ \
   --text-column text \
   --limit 200
