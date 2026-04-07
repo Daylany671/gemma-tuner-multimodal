@@ -4,7 +4,7 @@ This document describes how datasets are handled in this project and how to add 
 
 ## Dataset Structure
 
-**Path resolution:** `data/datasets/<dataset_name>/` is resolved relative to the **repository root** when no `config.ini` exists in the process current working directory (for example when you run `gemma-macos-tuner finetune` with `--config` pointing at the project `config.ini` from another directory). If `config.ini` is present in cwd, paths are relative to cwd instead (local workflows and tests).
+**Path resolution:** `data/datasets/<dataset_name>/` and the patch base `data_patches/` (overrides, blacklists) use the **same rule**: resolved relative to the **repository root** when no `config.ini` exists in the process current working directory (for example when you run `gemma-macos-tuner finetune` with `--config` pointing at the project `config.ini` from another directory). If `config.ini` is present in cwd, paths are relative to cwd instead (local workflows and tests). Avoid a stray unrelated `config.ini` in cwd if your data and patches live only under the repo — it would switch resolution to cwd-relative.
 
 The general structure for datasets is as follows:
 
