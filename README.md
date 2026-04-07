@@ -59,12 +59,12 @@ Training targets **Gemma multimodal (audio + text)** checkpoints loaded via `bas
 
 | Model key (`config.ini`) | Hugging Face `base_model` | Notes |
 | --- | --- | --- |
-| `gemma-4-e2b-it` | [`google/gemma-4-E2B-it`](https://huggingface.co/google/gemma-4-E2B-it) | Gemma 4 instruct, ~2B effective — usual default |
-| `gemma-4-e4b-it` | [`google/gemma-4-E4B-it`](https://huggingface.co/google/gemma-4-E4B-it) | Gemma 4 instruct, ~4B effective |
-| `gemma-4-e2b` | [`google/gemma-4-E2B`](https://huggingface.co/google/gemma-4-E2B) | Gemma 4 base (not instruct-tuned) |
-| `gemma-4-e4b` | [`google/gemma-4-E4B`](https://huggingface.co/google/gemma-4-E4B) | Gemma 4 base (not instruct-tuned) |
-| `gemma-3n-e2b-it` | [`google/gemma-3n-E2B-it`](https://huggingface.co/google/gemma-3n-E2B-it) | Gemma 3n instruct, ~2B effective |
-| `gemma-3n-e4b-it` | [`google/gemma-3n-E4B-it`](https://huggingface.co/google/gemma-3n-E4B-it) | Gemma 3n instruct, ~4B effective |
+| `gemma-4-e2b-it` | [`google/gemma-4-E2B-it`](https://huggingface.co/google/gemma-4-E2B-it) | Gemma 4 instruct, ~2B — requires `requirements-gemma4.txt` (see Installation) |
+| `gemma-4-e4b-it` | [`google/gemma-4-E4B-it`](https://huggingface.co/google/gemma-4-E4B-it) | Gemma 4 instruct, ~4B — requires Gemma 4 stack |
+| `gemma-4-e2b` | [`google/gemma-4-E2B`](https://huggingface.co/google/gemma-4-E2B) | Gemma 4 base — requires Gemma 4 stack |
+| `gemma-4-e4b` | [`google/gemma-4-E4B`](https://huggingface.co/google/gemma-4-E4B) | Gemma 4 base — requires Gemma 4 stack |
+| `gemma-3n-e2b-it` | [`google/gemma-3n-E2B-it`](https://huggingface.co/google/gemma-3n-E2B-it) | Gemma 3n instruct, ~2B — **default** on the base `pip install -e .` pin |
+| `gemma-3n-e4b-it` | [`google/gemma-3n-E4B-it`](https://huggingface.co/google/gemma-3n-E4B-it) | Gemma 3n instruct, ~4B |
 
 Add your own **`[model:your-name]`** section with `group = gemma` and a compatible `base_model` if you need another **any-to-any** Gemma 3n / Gemma 4 E2B–E4B checkpoint. **Larger Gemma 4 weights** on Hugging Face (for example 26B or 31B class) use a different Transformers architecture than this trainer’s `AutoModelForCausalLM` audio path—they are **not** supported here yet.
 
@@ -153,6 +153,16 @@ pip install torch torchaudio
 ```bash
 pip install -e .
 ```
+
+### 4b. Gemma 4 (optional)
+
+The default dependency pin is tested for **Gemma 3n** on Transformers 4.x. To train or load **Gemma 4** checkpoints you need a newer Transformers line (see [`README/plans/gemma4-upgrade.md`](README/plans/gemma4-upgrade.md)):
+
+```bash
+pip install -r requirements-gemma4.txt
+```
+
+Use a **separate virtual environment** if you want to keep a Gemma 3n-only env and a Gemma 4 env side by side.
 
 ### 5. Run the wizard
 
