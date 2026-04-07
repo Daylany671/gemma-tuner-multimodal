@@ -46,14 +46,15 @@ return_assistant_tokens_mask==True but chat template does not contain `{% genera
 
 ---
 
-## Issue: Long-input summarization — truncation drops assistant span — Active
+## Issue: Long-input summarization — truncation drops assistant span — Resolved
 
 **First spotted:** 2026-04-07
-**Status:** Active
+**Resolved:** 2026-04-07
+**Status:** Resolved
 
 ### Summary
 
-For summarization, **right-side truncation** at `max_length` keeps the **beginning** of the chat; very long user prompts can fill the entire window so the `<|turn>model` / assistant content never appears. That is separate from the degenerate-mask bug. **Next step:** prompt-aware truncation (e.g. reserve tokens for assistant output, left-truncate user content only) or chunking / hierarchical summarization.
+For summarization, **right-side truncation** at `max_length` keeps the **beginning** of the chat; very long user prompts can fill the entire window so the `<|turn>model` / assistant content never appears. That is separate from the degenerate-mask bug. **Fix:** before `apply_chat_template`, measure token length per row and **left-truncate the user prompt** (drop characters from the start) until the chat fits `max_length`, then apply the usual HF truncation as a safety net. Optional `instruction_truncation="none"` restores tokenizer-only truncation. Very long assistant targets still need a smaller response or a larger `max_seq_length`; the collator may **prefix-truncate** the assistant string if the pair still does not fit. Chunking / hierarchical summarization for multi-window documents remains a data-pipeline concern.
 
 ### Root Cause
 
@@ -61,14 +62,16 @@ Tokenizer `truncation=True` + `max_length` applies to the full rendered chat; lo
 
 ### Fix
 
-**Files (proposed):**
+**Files:**
 
-- `gemma_tuner/models/common/collators.py` — Optional pre-truncation of `prompt` text before `apply_chat_template`, or configurable strategy.
-- Profile / `max_seq_length` — Align with real prompt+response token budget.
+- `gemma_tuner/models/common/collators.py` — `instruction_truncation` (default `"left_user"`), `_instruction_seq_len`, `_fit_instruction_pair_to_max_length`, and integration in `_collate_instruction`.
+- `tests/test_gemma_text_collator.py` — `_FakeLongPromptTokenizer` plus tests for `left_user` vs `none`.
 
 ### Verification
 
-Decode truncated `input_ids` and assert assistant subsequence is present when examples require it.
+```bash
+.venv/bin/python -m pytest tests/test_gemma_text_collator.py -q
+```
 
 ---
 
