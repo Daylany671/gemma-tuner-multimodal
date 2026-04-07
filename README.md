@@ -2,9 +2,11 @@
 
 ![Gemma macOS Tuner wizard: system check, then LoRA / model / dataset steps](README/assets/wizard-cli.png)
 
-**Fine-tune Gemma with audio, on your Mac, on data that doesn't fit on your Mac.**
+**Fine-tune Gemma on text, images, *and* audio — on your Mac, on data that doesn't fit on your Mac.**
 
-- 🎙️ **Audio + text LoRA** — not just text. MLX can't do this yet.
+- 🖼️ **Image + text LoRA** — captioning and VQA on local CSV.
+- 🎙️ **Audio + text LoRA** — the only Apple-Silicon-native path that does this.
+- 📝 **Text-only LoRA** — instruction or completion on CSV.
 - ☁️ **Stream from GCS / BigQuery** — train on terabytes without filling your SSD.
 - 🍎 **Runs on Apple Silicon** — MPS-native, no NVIDIA box required.
 
@@ -23,7 +25,7 @@
 | **Stream training data from cloud** | ✅ | ❌ | ❌ | ⚠️ partial |
 | No NVIDIA GPU required | ✅ | ✅ | ❌ | ❌ |
 
-If you want to fine-tune Gemma on **audio** without renting an H100 or copying a terabyte of WAVs to your laptop, this is the only toolkit that does all three.
+If you want to fine-tune Gemma on **text, images, or audio** without renting an H100 or copying a terabyte of data to your laptop, this is the only toolkit that does all three modalities on Apple Silicon.
 
 **Text-only fine-tuning** (instruction or completion on CSV) is supported: set `modality = text` in your profile and use local CSV splits under `data/datasets/<name>/`. See [Text-only fine-tuning](#text-only-fine-tuning) below.
 
@@ -38,18 +40,19 @@ Under the hood: Hugging Face Gemma checkpoints + PEFT LoRA, supervised fine-tuni
 ## What you can build with this
 
 - **Domain-specific ASR** — fine-tune on medical dictation, legal depositions, call-center recordings, or any field where off-the-shelf Whisper / Gemma mishears the jargon.
-- **Accent and dialect adaptation** — adapt a base Gemma model to underrepresented accents using your own labeled audio.
-- **Low-resource languages** — train on a few hours of paired audio + transcript and ship a model that actually understands your language.
-- **Audio-grounded assistants** — extend Gemma's text reasoning with audio understanding for transcription + Q&A pipelines.
-- **Private, on-device pipelines** — train and run entirely on your Mac. Audio never leaves the machine; weights never touch a third-party API.
+- **Domain-specific vision** — captioning or VQA on receipts, charts, screenshots, manufacturing defects, medical imagery — any visual domain where generic models hallucinate.
+- **Document & screen understanding** — train on screenshot → structured-output pairs for UI agents, OCR-adjacent pipelines, or chart QA.
+- **Accent, dialect, and low-resource language adaptation** — adapt a base Gemma model to underrepresented voices and languages with your own labeled audio.
+- **Multimodal assistants** — extend Gemma's text reasoning with image *or* audio grounding for transcription, captioning, and Q&A pipelines.
+- **Private, on-device pipelines** — train and run entirely on your Mac. Data never leaves the machine; weights never touch a third-party API.
 
-If your data lives in GCS or BigQuery, you can do all of this on a laptop without copying terabytes of audio locally — the dataloader streams shards on demand.
+If your data lives in GCS or BigQuery, you can do all of this on a laptop without copying terabytes locally — the dataloader streams shards on demand.
 
 ---
 
 ## Supported models
 
-Training targets **Gemma multimodal (audio + text)** checkpoints loaded via `base_model` in [`config.ini`](config.ini) and routed to [`gemma_tuner/models/gemma/finetune.py`](gemma_tuner/models/gemma/finetune.py). The default file ships these **`[model:…]`** entries (LoRA on top of the Hub weights):
+Training targets **Gemma multimodal (text + image + audio)** checkpoints loaded via `base_model` in [`config.ini`](config.ini) and routed to [`gemma_tuner/models/gemma/finetune.py`](gemma_tuner/models/gemma/finetune.py). The default file ships these **`[model:…]`** entries (LoRA on top of the Hub weights):
 
 | Model key (`config.ini`) | Hugging Face `base_model` | Notes |
 | --- | --- | --- |
