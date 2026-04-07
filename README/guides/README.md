@@ -1,6 +1,6 @@
 # Field guides
 
-Long-form reference for Apple Silicon training and Hugging Face + PyTorch MPS behavior. Gemma training details: [`../specifications/Gemma3n.md`](../specifications/Gemma3n.md). Text-only CSV fine-tuning (profile keys, datasets): [`../Datasets.md`](../Datasets.md) and the root [`README.md`](../README.md#text-only-fine-tuning) “Text-only fine-tuning” section.
+Long-form reference for Apple Silicon training and Hugging Face + PyTorch MPS behavior. Gemma training details: [`../specifications/Gemma3n.md`](../specifications/Gemma3n.md). Text-only CSV fine-tuning (profile keys, datasets): [`../Datasets.md`](../Datasets.md) and the root [`README.md`](../README.md#text-only-fine-tuning) “Text-only fine-tuning” section. Gemma 3n vs Gemma 4 stack split and rollout are tracked in [`../plans/gemma4-upgrade.md`](../plans/gemma4-upgrade.md) (local / optional checkout).
 
 ## Apple Silicon (`apple-silicon/`)
 

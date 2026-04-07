@@ -2,7 +2,7 @@
 
 > **Note:** Gemma 4 (`google/gemma-4-E2B`) is now the primary fine-tuning target. Gemma 3n remains supported. This document covers the original Gemma 3n integration; Gemma 4 uses the same pipeline (identical USM-style audio encoder, same LoRA targets, same collator).
 
-Related: condensed developer notes — [`../guides/apple-silicon/gemma3n.md`](../guides/apple-silicon/gemma3n.md).
+Related: condensed developer notes — [`../guides/apple-silicon/gemma3n.md`](../guides/apple-silicon/gemma3n.md). For Gemma 4 (separate Transformers / PEFT pin), see [`../guides/apple-silicon/gemma4-guide.md`](../guides/apple-silicon/gemma4-guide.md).
 
 ## Executive Summary
 
