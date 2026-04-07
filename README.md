@@ -17,7 +17,7 @@ Train **Google Gemma** multimodal (audio + text) models on your own data—with 
 
 ---
 
-## The honest pitch
+## LoRA for Gemma 4 & 3n
 
 This repository is a **Gemma-first** toolkit: the training path loads Hugging Face Gemma checkpoints, injects PEFT LoRA adapters, and runs the supervised fine-tuning loop in `gemma_tuner/models/gemma/finetune.py`. If your profile’s model name does not contain `gemma`, `gemma_tuner/scripts/finetune.py` will refuse—by design.
 
