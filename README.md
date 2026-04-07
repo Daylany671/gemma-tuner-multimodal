@@ -21,7 +21,7 @@
 
 ---
 
-## Why not just use…?
+## LoRA for Gemma 4 & 3n — why not just use…?
 
 | | **This** | MLX-LM | Unsloth | axolotl |
 | --- | :-: | :-: | :-: | :-: |
