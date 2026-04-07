@@ -6,7 +6,7 @@ Related: condensed developer notes — [`../guides/apple-silicon/gemma3n.md`](..
 
 ## Executive Summary
 
-This document outlines the integration of Google's Gemma 3n, a state-of-the-art open multimodal model, into the Whisper Fine-Tuner framework. This extension enables users to perform parameter-efficient fine-tuning (PEFT) on Gemma 3n's audio capabilities, leveraging the framework's existing Apple Silicon (MPS) optimizations. The core of this project involves engineering a robust data pipeline to accommodate Gemma's unique audio processing requirements and extending the CLI wizard to provide a seamless, guided user experience for this new model family.
+This document outlines the integration of Google's Gemma 3n, a state-of-the-art open multimodal model, into this repository’s Gemma training stack. It covers parameter-efficient fine-tuning (PEFT) on Gemma 3n's audio capabilities, leveraging existing Apple Silicon (MPS) optimizations. The core of this project involves engineering a robust data pipeline to accommodate Gemma's unique audio processing requirements and extending the CLI wizard to provide a seamless, guided user experience for this new model family.
 
 ### Key Capabilities
 
@@ -20,7 +20,7 @@ This document outlines the integration of Google's Gemma 3n, a state-of-the-art 
 
 ### System Integration
 
-Gemma 3n will be integrated as a new model family alongside Whisper. The existing architecture (`gemma_tuner/core/ops.py` dispatch, `gemma_tuner/models/*/finetune.py` structure) will be extended.
+Gemma 3n is integrated as the primary multimodal training path. The existing architecture (`gemma_tuner/core/ops.py` dispatch, `gemma_tuner/models/gemma/finetune.py`) implements training.
 
 - **Model Implementation**: A new module at `gemma_tuner/models/gemma/finetune.py` will be created. It will leverage Hugging Face's `transformers` library to load `AutoModelForCausalLM` and `AutoProcessor` for Gemma 3n models.
 - **Training Framework**: The project will use the `trl.SFTTrainer`, which is well-suited for Gemma's chat-based format. This requires a specialized data pipeline to format audio-text pairs into the required conversational structure.
@@ -29,7 +29,7 @@ Gemma 3n will be integrated as a new model family alongside Whisper. The existin
 ### Core Technical Challenges & Solutions
 
 1.  **Data Preprocessing (The Critical Path)**:
-    - **Challenge**: Gemma's audio encoder uses Google's Universal Speech Model (USM), which requires a specific feature extraction process, unlike Whisper's simple log-mel spectrogram.
+    - **Challenge**: Gemma's audio encoder uses Google's Universal Speech Model (USM), which requires a specific feature extraction process, unlike classic log-mel ASR pipelines.
     - **Solution**: We will create a new data preparation script, `gemma_tuner/utils/gemma_dataset_prep.py`. This script will use the official `transformers.GemmaProcessor` to handle all audio processing. This ensures perfect replication of the required feature extraction and tokenization.
 
 2.  **Conversational Data Formatting**:
@@ -46,13 +46,8 @@ The wizard has been successfully extended to make Gemma 3n a first-class citizen
 
 ### Implemented Wizard Flow
 
-1.  **✅ Top-Level Model Family Selection**:
-    The wizard now presents model family choice as the first step after welcome.
-    ```
-    ? Choose the model family you want to work with:
-      ❯ 🌬️ Whisper - The robust ASR model from OpenAI.
-        💎 Gemma - The new multimodal model from Google.
-    ```
+1.  **✅ Model family (Gemma only)**:
+    The shipped wizard targets **Gemma** only; there is no alternate ASR family selector in the UI.
 
 2.  **✅ Gemma Model Selection with Hardware Gating**:
     When "Gemma" is selected, the wizard displays hardware-appropriate options.
@@ -140,7 +135,7 @@ target_modules = q_proj,k_proj,v_proj,o_proj
 ## Limitations and Challenges
 
 - **High Memory Requirements**: Even with LoRA, fine-tuning Gemma 3n's audio tower is memory-intensive. Full SFT will be impractical on most consumer hardware.
-- **Data Pipeline Complexity**: The dependency on the `GemmaProcessor` and the specific chat template makes the data pipeline more fragile than Whisper's. Any deviation will lead to poor results.
+- **Data Pipeline Complexity**: The dependency on the `GemmaProcessor` and the specific chat template makes the data pipeline sensitive to format errors. Any deviation will lead to poor results.
 - **Initial Scope**: The initial integration will focus on LoRA fine-tuning for audio transcription. Other modalities (vision) and training methods (distillation) are out of scope for the first version.
 - **MLX Instability**: As noted in the field guide, `mlx-lm` has known issues with Gemma's audio tower. This integration will **only** support the PyTorch MPS backend.
 
@@ -163,8 +158,7 @@ target_modules = q_proj,k_proj,v_proj,o_proj
 - [x] Add `gemma_tuner/utils/gemma_dataset_prep.py` (JSONL writer; optional if processor-based collator suffices)
 - [x] Add `gemma_tuner/scripts/gemma_generate.py` (load base + adapters; transcribe a WAV)
 - [ ] Wizard integration
-  - [ ] Add top-level Model Family selection (Whisper/Gemma)
-  - [x] Add top-level Model Family selection (Whisper/Gemma)
+  - [x] Gemma-only wizard flow (no multi-family selector required for shipping)
   - [x] Add Gemma models to wizard gating table for memory checks (`ModelSpecs.MODES`)
   - [x] Include Gemma models when user selects LoRA method in wizard model list
   - [x] Gemma-only method: LoRA (SFT hidden for now)

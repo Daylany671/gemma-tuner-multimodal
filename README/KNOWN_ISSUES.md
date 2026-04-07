@@ -2,7 +2,6 @@
 
 ## General Issues
 
-- **distil-whisper updated**: The implementation has been modernized to work with PyTorch 2.7+ and current HuggingFace APIs (Transformers 4.53+, Datasets 4.0+).
 - **Cache not utilized properly**: Dataset preprocessing recomputes log-Mels on each run because the cache key includes the entire preprocessing config (including fp16/fp32 toggle). Need to implement caching based on audio SHA-1 instead.
 - **Blacklist/evaluate metadata collision**: The blacklist script rewrites Arrow files in-place and drops the "audio/_array" column that evaluate.py expects. Workaround: Run blacklist first, then evaluate, or use `--no-cache`.
 - **Documentation command syntax**: Some older documentation incorrectly shows `gemma-macos-tuner --profile <profile>` when it should be `gemma-macos-tuner finetune <profile>`. This has been fixed in most places but may still appear in some examples.

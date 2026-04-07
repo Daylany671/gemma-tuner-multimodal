@@ -21,7 +21,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Trainer: offline-safe WER load with local_files_only + stub fallback for tests
 
 ### Deprecated
-- Legacy `manage.py` wrapped under `whisper-tuner legacy manage` (prefer `runs` group)
+- Legacy `manage.py` entry points removed in favor of the Typer CLI (`runs` group where applicable)
 
 ### Added
 - Full Apple Silicon (M1/M2/M3) support via Metal Performance Shaders (MPS)
@@ -45,7 +45,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Fixed
 - Hard-coded CUDA device references in evaluation scripts
 - Memory management calls that were CUDA-specific
-- Device placement issues in distil-whisper implementation
+- Device placement issues in legacy distillation experiments (historical)
 - README_MANAGE.md duplicate content issue
 
 ### Deprecated
@@ -53,6 +53,5 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 
 ### Known Issues
-- distil-whisper implementation needs updates
 - Cache not utilized properly during finetuning preprocessing
 - Blacklist script overwrites evaluate metadata

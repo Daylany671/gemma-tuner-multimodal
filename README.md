@@ -21,7 +21,7 @@ Train **Google Gemma** multimodal (audio + text) models on your own data—with 
 
 This repository is a **Gemma-first** toolkit: the training path loads Hugging Face Gemma checkpoints, injects PEFT LoRA adapters, and runs the supervised fine-tuning loop in `gemma_tuner/models/gemma/finetune.py`. If your profile’s model name does not contain `gemma`, `gemma_tuner/scripts/finetune.py` will refuse—by design.
 
-Export produces a **merged or plain Hugging Face / SafeTensors directory** for downstream use (`gemma_tuner/scripts/export.py`). If you are chasing Whisper.cpp / Core ML deployment patterns, start with [`README/guides/README.md`](README/guides/README.md) and [`README/specifications/Deployment.md`](README/specifications/Deployment.md)—those docs describe deployment tradeoffs; this repo’s **training** path is Gemma-only.
+Export produces a **merged or plain Hugging Face / SafeTensors directory** for downstream use (`gemma_tuner/scripts/export.py`). For Core ML conversion and GGUF-style local inference tooling, start with [`README/guides/README.md`](README/guides/README.md); this repo’s **training** path is Gemma-only.
 
 ---
 
@@ -32,11 +32,11 @@ Export produces a **merged or plain Hugging Face / SafeTensors directory** for d
 - **Cross-platform**: CUDA and CPU fall back cleanly when you are not on a Mac.
 - **Typer CLI**: `gemma-macos-tuner` is the interface you want; `main.py` remains for automation and habits.
 - **Data hygiene**: Patch directories, blacklists, and protection lists so one bad clip does not wreck a run.
-- **Scale-out data**: Stream from GCS, pull slices from BigQuery (optional extras), prepare Granary-scale corpora.
+- **Streaming data**: Stream data from GCS to your local machine, pull slices from BigQuery (optional extras), prepare Granary-scale corpora.
 - **Optional eye candy**: Live training visualizer behind the `viz` extra (Flask + Socket.IO).
 - **Interactive wizard**: `gemma-macos-tuner wizard`—questions, sane defaults, fewer foot-guns.
 
-**Deeper reading:** curated field guides in [`README/guides/README.md`](README/guides/README.md); product specs in [`README/specifications/`](README/specifications/).
+**Deeper reading:** curated field guides in [`README/guides/README.md`](README/guides/README.md); Gemma product notes in [`README/specifications/Gemma3n.md`](README/specifications/Gemma3n.md).
 
 ---
 
@@ -226,7 +226,7 @@ Install `viz` extras, set `visualize=true` in the profile, open the URL the trai
 
 ## NVIDIA Granary & streaming
 
-Large-corpus workflows: `gemma-macos-tuner prepare-granary <profile>` and streaming-oriented dataset keys—see [`README/specifications/Granary.md`](README/specifications/Granary.md) and [`README/Datasets.md`](README/Datasets.md).
+Large-corpus workflows: `gemma-macos-tuner prepare-granary <profile>` and streaming-oriented dataset keys—see [`README/Datasets.md`](README/Datasets.md).
 
 ---
 
@@ -278,3 +278,9 @@ See [`CONTRIBUTING.md`](CONTRIBUTING.md). Prefer extending `cli_typer.py` and sh
 ## Acknowledgments
 
 Google’s Gemma team, Hugging Face Transformers & PEFT, PyTorch MPS maintainers—and everyone who filed an issue after watching Activity Monitor turn red.
+
+---
+
+## License
+
+Released under the [MIT License](LICENSE).

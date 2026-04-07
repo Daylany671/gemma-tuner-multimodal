@@ -43,19 +43,9 @@ This is a workaround for local dataset handling with HuggingFace datasets.
 - `text_perfect`: Improved transcriptions excluding disfluencies
 - `language`: Two-letter language code or `??` for unknown
 
-## Export to GGML
+## Export artifacts
 
-Convert models for whisper.cpp:
-```bash
-python ./convert-h5-to-ggml.py <checkpoint_dir> <whisper_openai_dir>
-```
-
-Example:
-```bash
-python ./convert-h5-to-ggml.py \
-  ../../whisper/distil-whisper/training/output/checkpoint-100-epoch-7/ \
-  ../../whisper-openai
-```
+Training produces Hugging Face–compatible checkpoints and adapters (`gemma_tuner/scripts/export.py`). Third-party GGUF / local-inference conversion pipelines are not maintained in this repository.
 
 ## Data Quality Notes
 
@@ -84,13 +74,10 @@ id,audio_url,language,duration_seconds,text_verbatim,text_perfect,recording_type
 ## Architecture Notes
 
 ### Source Tree
-- `distil-whisper/`: Modified from official DistilWhisper repo
-- Modified files: `run_eval.py`, `run_distillation.py`
-- TODO: Extract modified files instead of keeping entire repo
+- Training code lives under `gemma_tuner/models/gemma/` and shared utilities in `gemma_tuner/utils/`.
 
 ### Pending Tasks
 - [ ] Make finetune.py print TensorBoard link
-- [ ] Extract distil-whisper modifications
 - [ ] Improve local dataset handling
 - [ ] Add automated outlier detection
 

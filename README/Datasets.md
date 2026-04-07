@@ -1,6 +1,6 @@
 # Datasets
 
-This document describes how datasets are handled in this project and how to add new datasets for finetuning and distilling Whisper models.
+This document describes how datasets are handled in this project and how to add new datasets for Gemma multimodal fine-tuning.
 
 ## Dataset Structure
 
@@ -57,7 +57,7 @@ The `scripts/prepare_data.py` script handles the data preparation process, inclu
 5. **Duration Calculation and Filtering:** Calculates the actual duration of each audio file using `librosa` and filters out samples exceeding `max_duration` specified in `config.ini`. The calculated duration is stored in the `duration` column of the prepared CSV.
 6. **Data Validation:** Performs checks for missing values, audio file integrity, and other potential issues.
 7. **Language Filtering:** Filters the dataset based on the `languages` setting in `config.ini`. See the "Language Handling" section below for details.
-8. **Applying Overrides and Blacklists:** Applies overrides and blacklists from CSV files located in `data_patches/{dataset_name}/`. See the "Data Patches (Overrides and Blacklists)" section in `README_ARCHITECTURE.md` for details.
+8. **Applying Overrides and Blacklists:** Applies overrides and blacklists from CSV files located in `data_patches/{dataset_name}/`. See the root [`README.md`](../README.md) and dataset utilities in `gemma_tuner/utils/dataset_utils.py` for details.
 
 **To prepare a dataset:**
 
@@ -68,7 +68,7 @@ The `scripts/prepare_data.py` script handles the data preparation process, inclu
     *   If you want to keep audio files separated by dataset, create a subdirectory `data/audio/data123/` and update `audio_dir` accordingly.
     *   Configure the `languages` and `language_mode` settings as described in the "Language Handling" section.
 3. **Run `prepare_data.py`:** Execute `gemma-macos-tuner prepare data123 --config config.ini` to prepare the new dataset.
-4. **Update `finetune.py` (if needed):** If your new dataset requires special handling during finetuning (e.g., different preprocessing steps), you might need to modify the `models/whisper/finetune.py` or `models/distil-whisper/finetune.py` scripts accordingly.
+4. **Update `gemma_tuner/models/gemma/finetune.py` (if needed):** If your new dataset requires special handling during finetuning (e.g., different preprocessing steps), extend the Gemma training path there or in `gemma_tuner/utils/gemma_dataset_prep.py`.
 
 ## Language Handling
 
@@ -119,7 +119,7 @@ To add a new dataset (e.g., `data123`):
     *   If you want to keep audio files separated by dataset, create a subdirectory `data/audio/data123/` and update `audio_dir` accordingly.
     *   Configure the `languages` and `language_mode` settings as described in the "Language Handling" section.
 4. **Run `prepare_data.py`:** Execute `gemma-macos-tuner prepare data123 --config config.ini` to prepare the new dataset.
-5. **Update `finetune.py` (if needed):** If your new dataset requires special handling during finetuning (e.g., different preprocessing steps), you might need to modify the `models/whisper/finetune.py` or `models/distil-whisper/finetune.py` scripts accordingly.
+5. **Update `gemma_tuner/models/gemma/finetune.py` (if needed):** If your new dataset requires special handling during finetuning (e.g., different preprocessing steps), extend the Gemma training path there or in `gemma_tuner/utils/gemma_dataset_prep.py`.
 
 ## Dataset Loading
 
@@ -133,7 +133,7 @@ The function directly loads the specified split file (`train.csv` or `validation
 
 **Overrides and Blacklists:**
 
-The `load_dataset_split` function automatically applies overrides and blacklists defined in the `data_patches/{dataset_name}` directory. See the "Data Patches (Overrides and Blacklists)" section in `README_ARCHITECTURE.md` for details on how to use this feature.
+The `load_dataset_split` function automatically applies overrides and blacklists defined in the `data_patches/{dataset_name}` directory. See the root [`README.md`](../README.md) for patch layout and `gemma_tuner/utils/dataset_utils.py` for behavior.
 
 ## Dataset Evaluation
 
@@ -150,10 +150,10 @@ You can evaluate a model on a specific dataset using the `gemma-macos-tuner eval
 2. **Using a model+dataset combination:**
 
     ```bash
-    gemma-macos-tuner evaluate whisper-medium+data3
+    gemma-macos-tuner evaluate gemma-4-e2b-it+data3
     ```
 
-    This will evaluate the pretrained `whisper-medium` model on the `data3` dataset. The evaluation will use the settings defined in the `[model:whisper-medium]` and `[dataset:data3]` sections of `config.ini`. The results will be saved in the `output/whisper-medium+data3` directory.
+    This will evaluate using the `gemma-4-e2b-it` model entry on the `data3` dataset. The evaluation will use the settings defined in the `[model:gemma-4-e2b-it]` and `[dataset:data3]` sections of `config.ini`. The results will be saved under `output/` for that run profile.
 
     **Note:** Only datasets defined in `config.ini` can be used in this mode.
 

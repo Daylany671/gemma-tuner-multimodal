@@ -1,32 +1,12 @@
 # Field guides
 
-Long-form reference material for Apple Silicon training, export, and adjacent tooling. Product behavior and roadmap live under [`../specifications/`](../specifications/).
-
-Mamba-specific guides were moved to the standalone `mamba-asr-mps` repository so this guide index stays focused on the Whisper product surface.
-
-The following files now house all documentation artifacts currently migrated into the root-level folder:
-- [`../specifications/visualizer-readme.md`](../specifications/visualizer-readme.md)
-- [`../specifications/distillation-explainer.md`](../specifications/distillation-explainer.md)
-- [`../specifications/bigquery_view_fix.sql`](../specifications/bigquery_view_fix.sql)
+Long-form reference for Apple Silicon training and Hugging Face + PyTorch MPS behavior. Gemma training details: [`../specifications/Gemma3n.md`](../specifications/Gemma3n.md).
 
 ## Apple Silicon (`apple-silicon/`)
 
 | Guide | Description |
 | --- | --- |
-| [`pytorch-mps.md`](apple-silicon/pytorch-mps.md) | PyTorch MPS production notes, Core ML tradeoffs, speech-model pitfalls on Metal. |
-| [`metal-mpsgraph-whisper.md`](apple-silicon/metal-mpsgraph-whisper.md) | Low-level Whisper fine-tuning with MPSGraph (not PyTorch MPS). |
-| [`pytorch-to-mlx-migration.md`](apple-silicon/pytorch-to-mlx-migration.md) | Mental model and migration patterns from PyTorch to MLX / MLX Swift. |
-| [`gemma3n.md`](apple-silicon/gemma3n.md) | Condensed Gemma 3n on-device architecture; complements the product spec. |
-
-## Core ML (`coreml/`)
-
-| Guide | Description |
-| --- | --- |
-| [`pytorch-tensorflow-to-coreml.md`](coreml/pytorch-tensorflow-to-coreml.md) | Generic PyTorch / TensorFlow → Core ML conversion (coremltools, common failures). |
-
-## Whisper export & deployment (`whisper/`)
-
-| Guide | Description |
-| --- | --- |
-| [`coreml-hybrid-whispercpp.md`](whisper/coreml-hybrid-whispercpp.md) | Whisper encoder on ANE via Core ML + decoder in whisper.cpp; environment and pitfalls. |
-| [`gguf-export-and-coreml-deployment.md`](whisper/gguf-export-and-coreml-deployment.md) | End-to-end GGUF export, hybrid deployment, quantization, and validation playbook. |
+| [`pytorch-mps.md`](apple-silicon/pytorch-mps.md) | PyTorch MPS production notes and Metal pitfalls. |
+| [`gemma3n.md`](apple-silicon/gemma3n.md) | Condensed Gemma 3n architecture notes. |
+| [`HF-transformers-MPS-guide.md`](apple-silicon/HF-transformers-MPS-guide.md) | Transformers on MPS (device maps, dtype, debugging). |
+| [`LoRA-Apple-Silicon-Guide.md`](apple-silicon/LoRA-Apple-Silicon-Guide.md) | LoRA / PEFT workflows on Apple Silicon. |
