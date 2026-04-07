@@ -2,9 +2,12 @@
 
 April 2, 2026
 
+> **Scope:** This repository trains **Gemma** multimodal models only (see `gemma_tuner/models/gemma/`). This report uses ASR-style Transformers patterns for **general** MPS debugging guidance.
+
+
 ## **1\. Executive Summary**
 
-This report establishes the definitive operational protocol for engineering teams actively shipping, debugging, and maintaining Hugging Face Transformers workflows—specifically seq2seq architectures, Whisper pipelines, autoregressive generation, and LoRA fine-tuning—on Apple Silicon. As of 2026, the PyTorch Metal Performance Shaders (MPS) backend has cemented its status as a highly capable but uniquely volatile "inference and local prototyping island".1 Achieving production-grade reliability requires navigating strict hardware limitations, framework fragmentation between PyTorch and Apple's native libraries, and silent regressions across the torch and transformers ecosystems.
+This report establishes the definitive operational protocol for engineering teams actively shipping, debugging, and maintaining Hugging Face Transformers workflows—specifically seq2seq architectures, ASR-style pipelines, autoregressive generation, and LoRA fine-tuning—on Apple Silicon. As of 2026, the PyTorch Metal Performance Shaders (MPS) backend has cemented its status as a highly capable but uniquely volatile "inference and local prototyping island".1 Achieving production-grade reliability requires navigating strict hardware limitations, framework fragmentation between PyTorch and Apple's native libraries, and silent regressions across the torch and transformers ecosystems.
 
 The following brutal realities govern Apple Silicon machine learning operations:
 
@@ -113,7 +116,7 @@ This section details the most critical failure boundaries encountered when opera
 * **Code Example (Minimal Fix):**  
   Python  
   training\_args \= Seq2SeqTrainingArguments(  
-      output\_dir="./whisper-mps-checkpoints",  
+      output\_dir="./gemma-mps-checkpoints",  
       predict\_with\_generate=True,  
       evaluation\_strategy="steps",  
       eval\_steps=500,  
@@ -163,21 +166,21 @@ This section details the most critical failure boundaries encountered when opera
 
 * **Verification:** The training loop initiates and processes batches without throwing a PID exit error.
 
-### **Issue 4: Missing Sparse Tensor Operations in Whisper**
+### **Issue 4: Missing Sparse Tensor Operations (MPS Sparse Backend)**
 
-* **Symptom:** NotImplementedError: Could not run 'aten::\_sparse\_coo\_tensor\_with\_dims\_and\_tensors' with arguments from the 'SparseMPS' backend..11  
-* **Root Cause:** Whisper architectures and certain embedding lookups optimize specific operations by utilizing sparse tensors. The MPS backend lacks coverage for various sparse tensor operations, and the SparseMPS framework is incomplete.11  
-* **Minimal Fix:** Enable the PyTorch CPU fallback environment variable.  
-* **Robust Fix:** Set the environment variable globally at the top of the execution script to ensure any missing operator transparently drops to the CPU.  
-* **Code Example:**  
-  Python  
-  import os  
-  \# Must be set BEFORE importing torch to hook into the backend initialization  
-  os.environ \= "1"  
-  import torch  
-  from transformers import WhisperForConditionalGeneration
+* **Symptom:** NotImplementedError: Could not run 'aten::\_sparse\_coo\_tensor\_with\_dims\_and\_tensors' with arguments from the 'SparseMPS' backend..11
+* **Root Cause:** Certain model architectures and embedding lookups optimize specific operations by utilizing sparse tensors. The MPS backend lacks coverage for various sparse tensor operations, and the SparseMPS framework is incomplete.11
+* **Minimal Fix:** Enable the PyTorch CPU fallback environment variable.
+* **Robust Fix:** Set the environment variable globally at the top of the execution script to ensure any missing operator transparently drops to the CPU.
+* **Code Example:**
+  Python
+  import os
+  \# Must be set BEFORE importing torch to hook into the backend initialization
+  os.environ \= "1"
+  import torch
+  from transformers import AutoModelForCausalLM
 
-* **Verification:** The Whisper forward pass completes successfully. Execution speed will slightly decrease when the specific fallback operator executes, but it prevents a fatal crash.
+* **Verification:** The model forward pass completes successfully. Execution speed will slightly decrease when the specific fallback operator executes, but it prevents a fatal crash.
 
 ### **Issue 5: Out of Memory on Long Sequence Generation**
 
@@ -217,16 +220,21 @@ This section details the most critical failure boundaries encountered when opera
 * **Robust Fix:** Explicitly clear the legacy attribute and assign the modern parameters directly onto the generation\_config object before invoking .generate().  
 * **Code Example:**  
   Python  
-  model \= WhisperForConditionalGeneration.from\_pretrained("openai/whisper-small").to("mps")
+  \# For Whisper encoder-decoder models: purge legacy forced_decoder_ids
+  model \= AutoModelForSpeechSeq2Seq.from\_pretrained("openai/whisper-small").to("mps")
 
-  \# Purge legacy attributes to prevent collisions  
-  model.config.forced\_decoder\_ids \= None  
+  \# Purge legacy attributes to prevent collisions
+  model.config.forced\_decoder\_ids \= None
   model.generation\_config.forced\_decoder\_ids \= None
 
-  \# Apply modern explicit configuration  
-  model.generation\_config.language \= "en"  
-  model.generation\_config.task \= "transcribe"  
+  \# Apply modern explicit configuration
+  model.generation\_config.language \= "en"
+  model.generation\_config.task \= "transcribe"
   model.generation\_config.use\_cache \= True \# Now safe to enable
+
+  \# For Gemma causal LM: forced_decoder_ids does not apply; use max_new_tokens
+  \# gemma\_model \= AutoModelForCausalLM.from\_pretrained("google/gemma-4-E2B").to("mps")
+  \# gemma\_model.generation\_config.max\_new\_tokens \= 512
 
 * **Verification:** Warning logs regarding forced\_decoder\_ids disappear, and standard beam search operates correctly without repeating loops.
 
@@ -306,11 +314,11 @@ Leverage low\_cpu\_mem\_usage=True. This parameter relies on safetensors to memo
 
 Python
 
-model \= AutoModelForSpeechSeq2Seq.from\_pretrained(  
-    "openai/whisper-large-v3",  
-    torch\_dtype=torch.float32,  
-    low\_cpu\_mem\_usage=True, \# Critical for Unified Memory  
-    use\_safetensors=True  
+model \= AutoModelForCausalLM.from\_pretrained(
+    "google/gemma-4-E2B",
+    torch\_dtype=torch.float32,
+    low\_cpu\_mem\_usage=True, \# Critical for Unified Memory
+    use\_safetensors=True
 ).to("mps")
 
 ## **6\. Worst Practices / Anti-patterns**
@@ -353,10 +361,10 @@ accelerator \= Accelerator(mixed\_precision="no") \# FP32 is safest for MPS grad
 device \= accelerator.device \# Automatically resolves to MPS if available
 
 \# 3\. Safe Model Loading  
-model \= AutoModelForSeq2SeqLM.from\_pretrained(  
-    "openai/whisper-small",  
-    low\_cpu\_mem\_usage=True,  
-    use\_safetensors=True  
+model \= AutoModelForCausalLM.from\_pretrained(
+    "google/gemma-4-E2B",
+    low\_cpu\_mem\_usage=True,
+    use\_safetensors=True
 )  
 optimizer \= torch.optim.AdamW(model.parameters(), lr=1e-5)
 

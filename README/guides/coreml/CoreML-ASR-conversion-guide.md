@@ -2,9 +2,12 @@
 
 April 2, 2026
 
+> **Scope:** This repository trains **Gemma** multimodal models only (see `gemma_tuner/models/gemma/`). This guide covers **general** Core ML export patterns for speech / seq2seq stacks.
+
+
 ## **1\. Executive Summary**
 
-The transition of speech models—particularly sequence-to-sequence transformer architectures like Whisper and Conformer—from PyTorch research environments to deployment-ready CoreML on Apple Silicon is a process defined by hardware idiosyncrasies, undocumented compiler behaviors, and strict memory layout requirements. This report serves as a hands-on operating manual for engineering teams actively shipping and debugging speech-model export and deployment workflows.
+The transition of speech models—particularly sequence-to-sequence transformer architectures like Conformer—from PyTorch research environments to deployment-ready CoreML on Apple Silicon is a process defined by hardware idiosyncrasies, undocumented compiler behaviors, and strict memory layout requirements. This report serves as a hands-on operating manual for engineering teams actively shipping and debugging speech-model export and deployment workflows.
 
 The following technical realities dictate CoreML deployment for speech on Apple Silicon:
 
@@ -209,12 +212,13 @@ This script demonstrates disabling SDPA, applying enumerated shapes, and executi
 
 Python
 
-import torch  
-import coremltools as ct  
-import whisper.model
+import torch
+import coremltools as ct
+from transformers import AutoModelForCausalLM
 
-\# 1\. Disable SDPA to allow deterministic tracing   
-whisper.model.MultiHeadAttention.use\_sdpa \= False
+\# 1\. Disable SDPA to allow deterministic tracing (use attn_implementation="eager")
+\# For HF models: pass attn_implementation="eager" to from_pretrained
+\# For custom modules: set module.use_sdpa = False before torch.jit.trace
 
 \# Assume \`encoder\` is the isolated PyTorch Audio Encoder module  
 encoder.eval()
@@ -239,7 +243,7 @@ mlmodel \= ct.convert(
     minimum\_deployment\_target=ct.target.macOS14  
 )
 
-mlmodel.save("WhisperEncoder\_ANE.mlpackage")
+mlmodel.save("GemmaEncoder\_ANE.mlpackage")
 
 ### **Snippet B: Parity Testing via Signal-to-Noise Ratio (SNR)**
 
@@ -270,7 +274,7 @@ def compute\_snr(reference: np.ndarray, target: np.ndarray) \-\> float:
 pytorch\_out \= pytorch\_encoder(dummy\_audio).detach().numpy()
 
 \# Run CoreML inference  
-coreml\_model \= ct.models.MLModel("WhisperEncoder\_ANE.mlpackage")  
+coreml\_model \= ct.models.MLModel("GemmaEncoder\_ANE.mlpackage")  
 coreml\_out \= coreml\_model.predict({"mel\_spectrogram": dummy\_audio.numpy()})\["output"\]
 
 \# Validate  
@@ -357,13 +361,13 @@ Bash
 \# Benchmark ANE performance vs CPU performance to verify acceleration
 
 echo "Benchmarking ANE Latency..."  
-xcrun coremlcompiler benchmark WhisperEncoder\_ANE.mlpackage \\  
+xcrun coremlcompiler benchmark GemmaEncoder\_ANE.mlpackage \\  
     \--input dummy\_mel.npy \\  
     \--device ane \\  
     \--json \> ane\_results.json
 
 echo "Benchmarking CPU Latency..."  
-xcrun coremlcompiler benchmark WhisperEncoder\_ANE.mlpackage \\  
+xcrun coremlcompiler benchmark GemmaEncoder\_ANE.mlpackage \\  
     \--input dummy\_mel.npy \\  
     \--device cpu \\  
     \--json \> cpu\_results.json

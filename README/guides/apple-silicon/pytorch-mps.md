@@ -2,9 +2,12 @@
 
 April 2, 2026
 
+> **Scope:** This repository trains **Gemma** multimodal models only (see `gemma_tuner/models/gemma/`). This guide uses ASR / speech-model examples to explain **general** PyTorch MPS behavior.
+
+
 ## **Executive Summary**
 
-The transition from CUDA-first or CPU-first PyTorch workflows to Apple Silicon’s Metal Performance Shaders (MPS) requires a fundamental rewiring of engineering assumptions. The architecture relies on unified memory, strict but often silent operational fallbacks, and a highly specific set of supported hardware precision formats. For teams fine-tuning Whisper, managing LoRA ranks, or experimenting with Mamba-style state space models, the following practical realities govern MPS execution in 2026:
+The transition from CUDA-first or CPU-first PyTorch workflows to Apple Silicon’s Metal Performance Shaders (MPS) requires a fundamental rewiring of engineering assumptions. The architecture relies on unified memory, strict but often silent operational fallbacks, and a highly specific set of supported hardware precision formats. For teams fine-tuning speech models, managing LoRA ranks, or experimenting with Mamba-style state space models, the following practical realities govern MPS execution in 2026:
 
 * **Float16 is Mandatory; Bfloat16 is a Trap**: Despite industry trends favoring bfloat16 for gradient stability, MPS execution of bfloat16 relies on unoptimized pathways that can degrade throughput by up to 10x compared to float16.1  
 * **The Silent NaN Contiguity Bug**: PyTorch operations like addcmul\_ and addcdiv\_ will silently fail—leaving tensors populated with zeros or NaNs—if the underlying tensors are not contiguous in memory. This is the primary cause of stalled training loss on MPS.4  
@@ -19,7 +22,7 @@ The transition from CUDA-first or CPU-first PyTorch workflows to Apple Silicon�
 * **Distillation Demands Memory Asymmetry**: When performing teacher-student distillation, load the frozen teacher on the CPU and the training student on MPS. Loading both on MPS will immediately exhaust the unified memory high watermark.19  
 * **Determinism is Expensive**: Reproducibility requires torch.use\_deterministic\_algorithms(True), but this disables crucial MPS optimizations and drastically reduces training throughput.21  
 * **Garbage Collection is Manual**: Unlike CUDA, MPS relies heavily on the OS pager. Interleaving torch.mps.empty\_cache() between large batch epochs is a required pattern for sustained training loops.22  
-* **LoRA is the Standard for Local Fine-Tuning**: Full parameter fine-tuning of Whisper Large-v3 will exceed Apple Silicon memory bandwidth. LoRA reduces memory requirements by a factor of 3 and is fully supported by the MPS backend.24  
+* **LoRA is the Standard for Local Fine-Tuning**: Full parameter fine-tuning of large models like Gemma 4 E4B will exceed Apple Silicon memory bandwidth. LoRA reduces memory requirements by a factor of 3 and is fully supported by the MPS backend.24  
 * **Validation Requires Parity Checks**: Never assume an MPS model is mathematically equivalent to its CPU counterpart without running torch.testing.assert\_close across the first training step.25
 
 ## **Decision Framework**
@@ -184,12 +187,15 @@ The PyTorch MPS backend contains unique, often poorly documented failure modes t
 * **Root Cause**: PyTorch’s torch.nn.functional.scaled\_dot\_product\_attention (SDPA) is highly optimized on CUDA via FlashAttention. However, the MPS implementation attempts to allocate a single, massive contiguous buffer for the attention matrix (![][image2] memory scaling). For long sequences, this buffer easily exceeds Metal's maximum supported buffer size per individual tensor, resulting in a hard crash. Furthermore, insidious output shape bugs currently exist where the last dimension of the output matches the query head instead of the value head.13  
 * **Minimal Fix**: Truncate audio sequences to ensure they remain under 10,000 tokens prior to processing.  
 * **Robust Fix**: Implement a chunked attention mechanism for long sequences, or disable SDPA entirely at the framework level and fall back to manual attention computation.  
-* **Code Example**:  
-  Python  
-  \# For Whisper models exported or run natively, explicitly disable SDPA  
-  \# to avoid both buffer crashes and dimension mismatch bugs on MPS.  
-  import whisper.model  
-  whisper.model.MultiHeadAttention.use\_sdpa \= False 
+* **Code Example**:
+  Python
+  \# Disable SDPA at the model config level to avoid buffer crashes and
+  \# dimension mismatch bugs on MPS. Works for Gemma and other HF models.
+  model \= AutoModelForCausalLM.from\_pretrained(
+      "google/gemma-4-E2B",
+      attn\_implementation="eager", \# Disables SDPA; uses plain PyTorch attention
+      torch\_dtype=torch.float32,
+  ).to("mps")
 
 * **Verification**: Pass a dummy tensor of shape (1, 1, 15000, 64\) through the target attention block. With SDPA disabled, it should execute and return the correct shape without raising an out-of-memory exception or Metal buffer assertion error.
 
@@ -206,9 +212,9 @@ The PyTorch MPS backend contains unique, often poorly documented failure modes t
 
 **Unified Memory Awareness** Unlike discrete discrete GPUs, moving data from cpu to mps does not traverse a slow PCIe bus; it merely reassigns memory pointers within the unified RAM architecture. Consequently, "pinning memory" (pin\_memory=True), a standard CUDA optimization intended to stage memory for fast PCIe transfer, is virtually useless on Apple Silicon. In some edge cases, it can actually cause memory allocator confusion and degrade performance.37 Treat the CPU and GPU as sharing the exact same physical space, and manage tensor lifecycles accordingly.
 
-**Whisper-Specific Optimizations** When running Whisper models, aggressive model selection based on hardware constraints is paramount. The base.en (142 MB) and small.en (466 MB) models provide the optimal latency-to-accuracy ratio for MPS execution. Avoid deploying the medium and large variants for any real-time processing tasks, as the parameter count exceeds the memory bandwidth required for fast autoregressive generation.10 Furthermore, strictly enforce greedy decoding (beamSize=1). Beam search creates a combinatorial explosion of tensor allocations that forces the MPS allocator to continuously resize pools, devastating throughput.10
+**Model Size Optimization for MPS** When selecting a model for Apple Silicon, aggressive sizing based on hardware memory is paramount. For Gemma, the E2B variant (~10 GB footprint with LoRA) provides the optimal latency-to-accuracy ratio on most Macs; the E4B variant (~18 GB) requires 24 GB+ unified memory for comfortable training. Strictly enforce greedy decoding (num\_beams=1). Beam search creates a combinatorial explosion of tensor allocations that forces the MPS allocator to continuously resize pools, devastating throughput.10
 
-**Distillation Load Balancing** When performing knowledge distillation, standard practice dictates loading both a massive teacher model and a compact student model onto the GPU. On a standard 32GB Mac, loading a Whisper Large-v3 teacher alongside a Whisper Small student onto the mps device will easily trigger the high-watermark OOM limit.19 Because the physical memory is shared, the optimal strategy is memory asymmetry: instantiate the frozen teacher on the cpu and the trainable student on mps. Compute the teacher logits on the CPU, move those specific output tensors across the bus to the mps device, and calculate the KL Divergence loss natively on the GPU. This bypasses the Metal allocator limits entirely while still utilizing hardware acceleration where it matters.20
+**Distillation Load Balancing** When performing knowledge distillation, standard practice dictates loading both a massive teacher model and a compact student model onto the GPU. On a standard 32 GB Mac, loading a large teacher alongside a smaller student onto the mps device will easily trigger the high-watermark OOM limit.19 Because the physical memory is shared, the optimal strategy is memory asymmetry: instantiate the frozen teacher on the cpu and the trainable student on mps. Compute the teacher logits on the CPU, move those specific output tensors across the bus to the mps device, and calculate the KL Divergence loss natively on the GPU. This bypasses the Metal allocator limits entirely while still utilizing hardware acceleration where it matters.20
 
 ## **Worst Practices / Anti-Patterns**
 
@@ -256,7 +262,7 @@ device \= get\_compute\_device()
 
 ### **Memory-Aware Training Step for Apple Silicon**
 
-This snippet interleaves garbage collection and handles precision scaling natively, preventing OOM crashes during Whisper LoRA fine-tuning.
+This snippet interleaves garbage collection and handles precision scaling natively, preventing OOM crashes during LoRA fine-tuning.
 
 Python
 

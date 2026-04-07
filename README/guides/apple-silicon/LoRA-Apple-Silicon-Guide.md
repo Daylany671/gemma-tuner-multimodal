@@ -2,9 +2,12 @@
 
 April 2, 2026
 
+> **Scope:** This repository trains **Gemma** multimodal models only (see `gemma_tuner/models/gemma/`). This guide uses seq2seq / speech examples for **general** LoRA-on-MPS guidance.
+
+
 ## **1\. Executive Summary**
 
-This field guide establishes the definitive operational protocols for engineering teams actively shipping Parameter-Efficient Fine-Tuning (PEFT) and Low-Rank Adaptation (LoRA) workflows on Apple Silicon. With a specific focus on the PyTorch Metal Performance Shaders (MPS) backend, this manual dictates the rigorous handling required to stabilize training, ensure evaluation parity, maintain checkpoint hygiene, and export deployment-safe sequence-to-sequence (seq2seq) and audio models, particularly the Whisper architecture.
+This field guide establishes the definitive operational protocols for engineering teams actively shipping Parameter-Efficient Fine-Tuning (PEFT) and Low-Rank Adaptation (LoRA) workflows on Apple Silicon. With a specific focus on the PyTorch Metal Performance Shaders (MPS) backend, this manual dictates the rigorous handling required to stabilize training, ensure evaluation parity, maintain checkpoint hygiene, and export deployment-safe sequence-to-sequence (seq2seq) and audio models.
 
 * **Precision Realities and the BF16 Trap:** Apple Silicon lacks native BFloat16 (BF16) hardware instruction sets. Executing BF16 triggers software emulation and upcasting, introducing a severe "correctness gap" between local fine-tuning on unified memory and datacenter deployment.1 Standardize on FP32 for gradient stability or strictly utilize FP16 when memory reduction is paramount.2  
 * **The Silent NaN Threat:** The MPS backend operates with significantly less strict floating-point exception handling than NVIDIA CUDA. Models will frequently continue training for hours while accumulating "Silent NaNs" (Not a Number) in the loss gradients, silently poisoning the checkpoint.1 Explicit gradient monitoring is mandatory.  
@@ -213,33 +216,29 @@ Engineering on the Metal Performance Shaders backend requires navigating a disti
 
 * **How to Verify:** Execute a parity check comparing the logits of the unmerged model against the merged model. The mean absolute error (MAE) between the two output tensors must be less than 1e-5.
 
-### **4.5 Issue: Resumed Checkpoint Divergence (Seq2Seq / Whisper)**
+### **4.5 Issue: Resumed Checkpoint Divergence (Seq2Seq Models)**
 
-* **Symptom:** Training resumes successfully without explicit errors, but the loss immediately spikes, or the model begins outputting hallucinated garbage text.  
-* **Root Cause:** When the Hugging Face Trainer saves a PEFT checkpoint, it serializes only the adapter weights and the adapter configuration (adapter\_model.safetensors, adapter\_config.json).37 It frequently fails to persist the tokenizer state or specific generation configuration parameters—most critically, the decoder\_start\_token\_id.14 Upon resumption, the newly instantiated base model lacks its BOS (Begin-Of-Sentence) token override. Consequently, the seq2seq model begins decoding at an arbitrary token index, misaligning the entire sequence and causing immediate gradient explosions.  
-* **Minimal Fix:** Explicitly pass the decoder\_start\_token\_id when defining the Seq2SeqTrainingArguments or when calling model.generate().  
-* **Robust Fix:** Hardcode the configuration parameters directly into the model object prior to re-initiating the training loop from the checkpoint.  
-* **Code Example:**  
-  Python  
-  from transformers import WhisperProcessor, WhisperForConditionalGeneration
+* **Symptom:** Training resumes successfully without explicit errors, but the loss immediately spikes, or the model begins outputting hallucinated garbage text.
+* **Root Cause:** When the Hugging Face Trainer saves a PEFT checkpoint, it serializes only the adapter weights and the adapter configuration (adapter\_model.safetensors, adapter\_config.json).37 It frequently fails to persist the tokenizer state or specific generation configuration parameters—most critically, the decoder\_start\_token\_id for encoder-decoder models, or bos\_token\_id for causal LMs.14 Upon resumption, the model begins decoding at an arbitrary token index, misaligning the entire sequence and causing immediate gradient explosions.
+* **Minimal Fix:** Explicitly restore generation config parameters before wrapping with PEFT and resuming.
+* **Robust Fix:** Hardcode the configuration parameters directly into the model object prior to re-initiating the training loop from the checkpoint.
+* **Code Example (Gemma causal LM):**
+  Python
+  from transformers import AutoTokenizer, AutoModelForCausalLM
 
-  processor \= WhisperProcessor.from\_pretrained("openai/whisper-large-v3-turbo")  
-  model \= WhisperForConditionalGeneration.from\_pretrained("openai/whisper-large-v3-turbo")
+  tokenizer \= AutoTokenizer.from\_pretrained("google/gemma-4-E2B")
+  model \= AutoModelForCausalLM.from\_pretrained("google/gemma-4-E2B")
 
-  \# MUST inject these overrides before wrapping with PEFT and resuming  
-  model.config.decoder\_start\_token\_id \= processor.tokenizer.bos\_token\_id  
-  model.config.pad\_token\_id \= processor.tokenizer.pad\_token\_id
+  \# MUST inject these overrides before wrapping with PEFT and resuming
+  model.config.bos\_token\_id \= tokenizer.bos\_token\_id
+  model.config.pad\_token\_id \= tokenizer.pad\_token\_id
+  model.generation\_config.max\_new\_tokens \= 512
 
-  \# For Whisper, force language tokens to prevent language hallucination  
-  model.config.forced\_decoder\_ids \= processor.get\_decoder\_prompt\_ids(  
-      language="en", task="transcribe"  
-  )
-
-  \# Now wrap and resume  
-  model \= get\_peft\_model(model, peft\_config)  
+  \# Now wrap and resume
+  model \= get\_peft\_model(model, peft\_config)
   trainer.train(resume\_from\_checkpoint="path/to/peft/checkpoint")
 
-* **How to Verify:** Inspect the first batch of generated predictions after resumption. The output sequence should correctly begin with the \<|startoftranscript|\> and \<|en|\> tokens, and the loss should continue smoothly from the previous epoch's final value.
+* **How to Verify:** Inspect the first batch of generated predictions after resumption. The output sequence should begin with the BOS token, and the loss should continue smoothly from the previous epoch's final value.
 
 ### **4.6 Issue: Generation Crashes with Gradient Checkpointing**
 
@@ -306,40 +305,40 @@ Engineering on the Metal Performance Shaders backend requires navigating a disti
 
 ## **9\. Copy-Paste Reference Snippets**
 
-### **9.1 Whisper-Specific LoRA Configuration and Target Selection**
+### **9.1 Gemma Audio Model LoRA Configuration and Target Selection**
 
-This script demonstrates how to dynamically target all cross-attention and linear layers in a Whisper model, avoiding hardcoded string lists that inevitably break across library versions.
+This script demonstrates how to dynamically target all attention and linear layers in a Gemma audio model, avoiding hardcoded string lists that inevitably break across library versions.
 
 Python
 
-import torch  
-from transformers import WhisperForConditionalGeneration  
+import torch
+from transformers import AutoModelForCausalLM
 from peft import LoraConfig, get\_peft\_model
 
-model\_id \= "openai/whisper-large-v3-turbo"  
-model \= WhisperForConditionalGeneration.from\_pretrained(  
-    model\_id,   
-    torch\_dtype=torch.float32, \# Ensure safe MPS baseline  
-    device\_map="mps"  
+model\_id \= "google/gemma-4-E2B"
+model \= AutoModelForCausalLM.from\_pretrained(
+    model\_id,
+    torch\_dtype=torch.float32, \# Ensure safe MPS baseline
+    device\_map="mps"
 )
 
-\# Dynamically target all linear projection layers (attention \+ FFN)  
-\# Crucial: Avoid targeting embeddings or convolutional layers  
-target\_modules \= \[  
-    name for name, module in model.named\_modules()  
-    if isinstance(module, torch.nn.Linear) and ("proj" in name or "fc" in name)  
+\# Dynamically target all linear projection layers (attention \+ FFN)
+\# Crucial: Avoid targeting embeddings or convolutional layers
+target\_modules \= \[
+    name for name, module in model.named\_modules()
+    if isinstance(module, torch.nn.Linear) and ("proj" in name or "fc" in name)
 \]
 
-peft\_config \= LoraConfig(  
-    r=16,  
-    lora\_alpha=32,  
-    target\_modules=target\_modules, \# Resolves dynamically to \["q\_proj", "v\_proj", "fc1", "fc2",...\]  
-    lora\_dropout=0.05,  
-    bias="none",  
-    task\_type="SEQ\_2\_SEQ\_LM"  
+peft\_config \= LoraConfig(
+    r=16,
+    lora\_alpha=32,
+    target\_modules=target\_modules, \# Resolves dynamically to \["q\_proj", "v\_proj", "fc1", "fc2",...\]
+    lora\_dropout=0.05,
+    bias="none",
+    task\_type="CAUSAL\_LM"
 )
 
-model \= get\_peft\_model(model, peft\_config)  
+model \= get\_peft\_model(model, peft\_config)
 model.print\_trainable\_parameters()
 
 ### **9.2 Apple-Silicon Memory-Safe Manual Training Loop**
