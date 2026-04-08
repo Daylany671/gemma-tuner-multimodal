@@ -12,16 +12,16 @@ This guide focuses on **LoRA-style** adaptation for multimodal Gemma on macOS wi
 
 ## Stack versions: this repo vs “latest HF”
 
-**Core dependency bounds** are in [`pyproject.toml`](../../../pyproject.toml) (and mirrored in [`requirements/requirements.txt`](../../../requirements/requirements.txt)). **`transformers` has no upper cap** so an editable install can coexist with the optional Gemma 4 stack.
+**Core dependency bounds** are in [`pyproject.toml`](../../../pyproject.toml) (and mirrored in [`requirements/requirements.txt`](../../../requirements/requirements.txt)). **`transformers` is pinned at `>=5.5.0` in the base tree** (Gemma 4’s minimum) so `pip install -e .` and `uv sync` do not resolve back to Transformers 4.x. There is **no upper cap** on `transformers` beyond that floor.
 
-| Package | Base (this repo) | Gemma 4 (add [`requirements-gemma4.txt`](../../../requirements/requirements-gemma4.txt)) |
+| Package | Base (this repo) | Optional [`requirements-gemma4.txt`](../../../requirements/requirements-gemma4.txt) (PEFT / explicit stack) |
 | --- | --- | --- |
-| `transformers` | `>=4.46.0` | `>=5.5.0` |
-| `peft` | `>=0.9.0` | `>=0.18.1` (via Gemma 4 file) |
+| `transformers` | `>=5.5.0` | same floor (repeated for manual / incremental installs) |
+| `peft` | `>=0.9.0` | `>=0.18.1` (recommended for Gemma 4 LoRA) |
 | `datasets` | `>=4.0.0` | (unchanged) |
 | `accelerate` | `>=0.27.2` | (unchanged) |
 
-**Gemma 3n** paths are fine on Transformers 4.46+. **Gemma 4** training in this repo expects you to install the Gemma 4 stack after the base tree (`pip install -r requirements/requirements-gemma4.txt`). Run tests and `gemma_preflight` after any major version bump. If you maintain a **separate** environment outside this project, consult [Hugging Face model cards](https://huggingface.co/google) and release notes for minimum versions.
+**Gemma 3n** and **Gemma 4** both use the same base `transformers` floor here (5.5+). You can still `pip install -r requirements/requirements-gemma4.txt` to align **PEFT** with the Gemma 4 stack in one shot. Run tests and `gemma_preflight` after any major version bump. If you maintain a **separate** environment outside this project, consult [Hugging Face model cards](https://huggingface.co/google) and release notes for minimum versions.
 
 Audio preprocessing in training stacks typically uses **librosa** + **soundfile**; vision stacks use **Pillow**. Match versions to your lockfile or `requirements/requirements.txt`.
 
